@@ -1,9 +1,13 @@
 FROM php:8.2-apache
 
 # Módulos Apache y extensiones PHP.
-# pdo_sqlite viene con PHP core; solo hay que habilitarlo. sqlite3 idem.
-RUN a2enmod rewrite headers \
- && docker-php-ext-install pdo_sqlite
+# libsqlite3-dev es necesaria para compilar pdo_sqlite (la imagen base no la trae).
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends libsqlite3-dev \
+ && a2enmod rewrite headers \
+ && docker-php-ext-install pdo_sqlite \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
 
 # Config de PHP: uploads de hasta 6 MB (límite interno del endpoint es 5 MB, damos margen).
 RUN { \
