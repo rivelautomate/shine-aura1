@@ -1,14 +1,39 @@
 <?php
 require_once __DIR__ . '/db.php';
 
+// Logging de errores inesperados (fatales) para que el cliente reciba JSON y no HTML.
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+
+register_shutdown_function(function () {
+    $err = error_get_last();
+    if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_COMPILE_ERROR, E_CORE_ERROR], true)) {
+        @file_put_contents(__DIR__ . '/../data/mp-preference.log',
+            '[' . date('Y-m-d H:i:s') . "] FATAL: " . $err['message'] . ' at ' . $err['file'] . ':' . $err['line'] . "\n",
+            FILE_APPEND);
+        if (!headers_sent()) {
+            http_response_code(500);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['error' => 'Error interno del servidor', 'detail' => $err['message']]);
+        }
+    }
+});
+
+function sa_pref_log(string $msg): void {
+    @file_put_contents(__DIR__ . '/../data/mp-preference.log',
+        '[' . date('Y-m-d H:i:s') . '] ' . $msg . "\n", FILE_APPEND);
+}
+
 // Crea la preferencia de MP para una venta ya registrada en la BD.
 // Body: {orderCode: "SA-XXX-XXX"}  — la venta ya debe existir (fue creada por /api/sales.php).
 // Devuelve {init_point, preferenceId, orderCode}.
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') sa_fail('Método no permitido', 405);
 
+if (!function_exists('curl_init')) sa_fail('El servidor no tiene la extensión cURL de PHP instalada', 500);
+
 $accessToken = getenv('MP_ACCESS_TOKEN');
-if (!$accessToken) sa_fail('MercadoPago todavía no está configurado en el servidor.', 503);
+if (!$accessToken) sa_fail('MercadoPago todavía no está configurado en el servidor (falta MP_ACCESS_TOKEN).', 503);
 
 $in = sa_read_json_body();
 $orderCode = trim((string)($in['orderCode'] ?? ''));
@@ -68,6 +93,8 @@ $preferenceData = [
     ],
 ];
 
+sa_pref_log("REQUEST orderCode={$orderCode} siteUrl={$siteUrl}");
+
 $ch = curl_init('https://api.mercadopago.com/checkout/preferences');
 curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
@@ -76,19 +103,34 @@ curl_setopt_array($ch, [
     CURLOPT_HTTPHEADER     => [
         'Content-Type: application/json',
         'Authorization: Bearer ' . $accessToken,
+        'User-Agent: ShineAura/1.0',
     ],
-    CURLOPT_TIMEOUT        => 15,
+    CURLOPT_TIMEOUT        => 20,
+    CURLOPT_CONNECTTIMEOUT => 10,
+    CURLOPT_SSL_VERIFYPEER => true,
+    CURLOPT_SSL_VERIFYHOST => 2,
+    CURLOPT_FOLLOWLOCATION => false,
 ]);
 $response = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 $curlErr  = curl_error($ch);
+$curlErrno = curl_errno($ch);
 curl_close($ch);
 
+sa_pref_log("RESPONSE http={$httpCode} curlErrno={$curlErrno} curlErr={$curlErr} body=" . substr((string)$response, 0, 800));
+
+if ($curlErrno !== 0) {
+    sa_fail('No pudimos conectar con MercadoPago: ' . $curlErr, 502, [
+        'curl_errno' => $curlErrno,
+    ]);
+}
+
 if ($httpCode < 200 || $httpCode >= 300) {
-    sa_fail('No se pudo crear la preferencia en MercadoPago', 502, [
+    $parsed = json_decode($response, true);
+    $mpMsg = is_array($parsed) && isset($parsed['message']) ? $parsed['message'] : 'Error desconocido';
+    sa_fail('MercadoPago rechazó la preferencia: ' . $mpMsg, 502, [
         'http_code' => $httpCode,
-        'details'   => json_decode($response, true) ?: $response,
-        'curl'      => $curlErr,
+        'details'   => $parsed ?: $response,
     ]);
 }
 
