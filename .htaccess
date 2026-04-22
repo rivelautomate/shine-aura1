@@ -1,0 +1,24 @@
+# Shine Aura — Apache config
+# Desactiva cache del navegador para los HTML. Así cuando cambiamos algo en el sitio,
+# el cliente siempre ve la versión nueva sin tener que hacer hard refresh.
+
+<IfModule mod_headers.c>
+  # HTML: nunca cachear
+  <FilesMatch "\.(html|htm)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+
+  # Endpoints de API: tampoco (son dinámicos)
+  <FilesMatch "\.php$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+
+  # Imágenes, fuentes y CSS: se pueden cachear por 1 día
+  <FilesMatch "\.(jpg|jpeg|png|gif|webp|svg|woff|woff2|ttf|css|ico)$">
+    Header set Cache-Control "public, max-age=86400"
+  </FilesMatch>
+</IfModule>
