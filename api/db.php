@@ -112,8 +112,17 @@ function sa_read_json_body(): array {
 }
 
 function sa_site_url(): string {
-    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    // Detección robusta de HTTPS: en Easypanel/Traefik, el container recibe HTTP
+    // y el proxy anuncia el protocolo real en X-Forwarded-Proto.
+    $fwdProto = $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '';
+    if (strtolower($fwdProto) === 'https') {
+        $protocol = 'https';
+    } elseif (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+        $protocol = 'https';
+    } else {
+        $protocol = 'http';
+    }
+    $host = $_SERVER['HTTP_X_FORWARDED_HOST'] ?? $_SERVER['HTTP_HOST'] ?? 'localhost';
     return $protocol . '://' . $host;
 }
 
@@ -168,3 +177,4 @@ function sa_sale_to_api(array $row): array {
         'updatedAt'     => $row['updated_at'],
     ];
 }
+
