@@ -247,9 +247,30 @@ html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
 @media(max-width:640px){
   .admin-body{padding:20px 14px 60px;}
   .form-grid-2{grid-template-columns:1fr;}
-  .modal{padding:22px 16px 28px;}
+  .modal-overlay .modal{padding:22px 16px 28px;width:100%;max-height:96vh;
+    border-radius:20px 20px 0 0;top:auto;bottom:0;
+    transform:translateX(-50%) translateY(100%);}
+  .modal-overlay.open .modal{transform:translateX(-50%) translateY(0);}
   .tabs{padding:0 14px;}
   .admin-header{padding:12px 16px;}
+  .admin-header .logo{font-size:16px;}
+  .admin-header .logo-sub{display:none;}
+  .toolbar h2{font-size:22px;}
+  .admin-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
+  .admin-card-body{padding:12px;}
+  .admin-card-name{font-size:15px;}
+  .admin-card-price{font-size:14px;}
+  .admin-card-actions{flex-direction:column;gap:6px;}
+  .admin-card-actions .btn{width:100%;}
+  .stats-row{grid-template-columns:1fr 1fr;gap:10px;}
+  .stat-card{padding:14px 16px;}
+  .stat-val{font-size:22px;}
+  .sales-table{font-size:12px;}
+  .sales-table th, .sales-table td{padding:10px 8px;}
+}
+@media(max-width:420px){
+  .admin-grid{grid-template-columns:1fr;gap:12px;}
+  .admin-card-actions{flex-direction:row;}
 }
 </style>
 </head>
@@ -401,8 +422,9 @@ html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
       <label class="form-field">Descripción corta *
         <input id="fDesc" required placeholder="Satén premium · escote profundo">
       </label>
-      <label class="form-field">Descripción larga
-        <textarea id="fLongDesc" rows="3" placeholder="Descripción detallada del producto..."></textarea>
+      <label class="form-field">Descripción larga (se muestra en el detalle del producto)
+        <textarea id="fLongDesc" rows="4" placeholder="Ej: Material, medidas, cuidados, tipo de tela, con qué combinar..."></textarea>
+        <span class="form-help">Podés usar varias líneas. Acá contás todo lo que quieras del producto para que la clienta se enamore ✨</span>
       </label>
       <div class="form-grid-2">
         <label class="form-field">Precio *
@@ -412,18 +434,9 @@ html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
           <input id="fOld" type="number" min="0" placeholder="80000">
         </label>
       </div>
-      <div class="form-grid-2">
-        <label class="form-field">Talles disponibles
-          <input id="fSizes" placeholder="XS, S, M, L, XL">
-          <span class="form-help">Separados por coma. Ej: XS, S, M, L — o: Único</span>
-        </label>
-        <label class="form-field">Stock
-          <input id="fStock" type="number" min="0" placeholder="10" value="0">
-          <span class="form-help">Cantidad disponible (informativo)</span>
-        </label>
-      </div>
-      <label class="form-field">Cuotas (opcional)
-        <input id="fInstallments" placeholder="3 cuotas sin interés">
+      <label class="form-field">Stock
+        <input id="fStock" type="number" min="0" placeholder="10" value="0">
+        <span class="form-help">Cantidad disponible (informativo, solo lo ves vos en el admin)</span>
       </label>
 
       <label class="form-field">Fotos del producto
@@ -638,9 +651,7 @@ function openProductModal(id){
     document.getElementById('fLongDesc').value = p.longDesc || '';
     document.getElementById('fPrice').value = p.price || '';
     document.getElementById('fOld').value = p.old || '';
-    document.getElementById('fSizes').value = (p.sizes || []).join(', ');
     document.getElementById('fStock').value = p.stock || 0;
-    document.getElementById('fInstallments').value = p.installments || '';
     document.getElementById('fActive').checked = !!p.active;
     document.getElementById('fFeatured').checked = !!p.featured;
     _modalImages = (p.images || []).slice();
@@ -699,7 +710,6 @@ async function saveProduct(e){
   e.preventDefault();
   const id = document.getElementById('editId').value;
   const oldVal = document.getElementById('fOld').value;
-  const sizesRaw = document.getElementById('fSizes').value;
   const payload = {
     name: document.getElementById('fName').value.trim(),
     cat: document.getElementById('fCat').value,
@@ -708,9 +718,7 @@ async function saveProduct(e){
     longDesc: document.getElementById('fLongDesc').value.trim(),
     price: Number(document.getElementById('fPrice').value),
     old: oldVal ? Number(oldVal) : null,
-    sizes: sizesRaw ? sizesRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
     stock: Number(document.getElementById('fStock').value || 0),
-    installments: document.getElementById('fInstallments').value.trim(),
     images: _modalImages,
     featured: document.getElementById('fFeatured').checked,
     active: document.getElementById('fActive').checked,
