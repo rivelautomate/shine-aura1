@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Efectos de fondo — SHINE AURA</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;}
+body{margin:0;font-family:'Inter',sans-serif;background:#0a0a0a;color:#fff;}
+
+.intro{padding:40px 24px;text-align:center;}
+.intro h1{font-family:'Playfair Display',serif;font-weight:400;font-size:30px;margin:0 0 8px;}
+.intro p{color:#bbb;margin:0;font-size:14px;line-height:1.7;max-width:560px;margin:0 auto;}
+.intro em{color:#F2A7C3;font-style:normal;}
+
+.demo{min-height:72vh;display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden;
+  background:linear-gradient(135deg,#FDE8F2 0%,#FFF8F5 45%,#FAD4E4 100%);}
+.demo-label{position:absolute;top:22px;left:24px;z-index:50;
+  background:rgba(45,27,36,.88);color:#fff;padding:9px 18px;border-radius:999px;
+  font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;}
+.demo-label b{color:#F2A7C3;margin-right:8px;}
+.demo-desc{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);
+  z-index:50;background:rgba(255,255,255,.85);color:#2D1B24;
+  padding:8px 18px;border-radius:999px;font-size:12px;
+  font-style:italic;font-family:'Playfair Display',serif;text-align:center;
+  max-width:90vw;backdrop-filter:blur(6px);}
+.demo-logo{position:relative;z-index:10;display:flex;flex-direction:column;
+  align-items:center;gap:14px;}
+.demo-logo img{width:clamp(260px,44vw,440px);display:block;
+  filter:drop-shadow(0 8px 24px rgba(212,120,155,.22));}
+.demo-tag{font-family:'Playfair Display',serif;font-style:italic;
+  font-size:15px;color:#9B7E8C;}
+
+/* ==== EFECTO 1: Halo / Glow ==== */
+.fx-1 .halo{position:absolute;top:50%;left:50%;
+  width:680px;height:680px;transform:translate(-50%,-50%);
+  background:radial-gradient(circle,rgba(212,120,155,.32) 0%,rgba(242,167,195,.15) 35%,rgba(212,120,155,0) 65%);
+  animation:haloBreathe 4.5s ease-in-out infinite;pointer-events:none;}
+@keyframes haloBreathe{
+  0%,100%{opacity:.65;transform:translate(-50%,-50%) scale(1);}
+  50%{opacity:1;transform:translate(-50%,-50%) scale(1.15);}
+}
+.fx-1 .halo-2{position:absolute;top:50%;left:50%;
+  width:380px;height:380px;transform:translate(-50%,-50%);
+  background:radial-gradient(circle,rgba(255,255,255,.5) 0%,rgba(255,255,255,0) 70%);
+  animation:haloBreathe 4.5s ease-in-out infinite reverse;pointer-events:none;}
+
+/* ==== EFECTO 2: Partículas / Sparkles flotando ==== */
+.fx-2 .sp{position:absolute;pointer-events:none;
+  animation:floatUp 14s linear infinite;opacity:0;}
+@keyframes floatUp{
+  0%{transform:translateY(100vh) rotate(0);opacity:0;}
+  8%{opacity:1;}
+  92%{opacity:1;}
+  100%{transform:translateY(-20vh) rotate(540deg);opacity:0;}
+}
+.fx-2 .sp svg{display:block;}
+
+/* ==== EFECTO 3: Gradiente animado ==== */
+.fx-3{background:linear-gradient(270deg,#FDE8F2,#FFF8F5,#F5DEE9,#FAD4E4,#FFE4EF,#FDE8F2);
+  background-size:400% 400%;animation:gradShift 22s ease infinite;}
+@keyframes gradShift{
+  0%{background-position:0% 50%;}
+  50%{background-position:100% 50%;}
+  100%{background-position:0% 50%;}
+}
+
+/* ==== EFECTO 4: Aurora / Blobs ==== */
+.fx-4{background:#FFF8F5;}
+.fx-4 .blob{position:absolute;border-radius:50%;filter:blur(70px);
+  mix-blend-mode:multiply;animation:blobMove 16s ease-in-out infinite;pointer-events:none;}
+.fx-4 .b1{width:460px;height:460px;background:#F2A7C3;top:-10%;left:-5%;}
+.fx-4 .b2{width:400px;height:400px;background:#FAD4E4;bottom:-10%;right:-5%;animation-delay:-6s;}
+.fx-4 .b3{width:320px;height:320px;background:#D4789B;opacity:.55;
+  top:40%;left:55%;animation-delay:-10s;}
+.fx-4 .b4{width:260px;height:260px;background:#FDE8F2;top:10%;right:20%;animation-delay:-3s;}
+@keyframes blobMove{
+  0%,100%{transform:translate(0,0) scale(1);}
+  33%{transform:translate(70px,-50px) scale(1.18);}
+  66%{transform:translate(-60px,40px) scale(.88);}
+}
+
+/* ==== EFECTO 5: Rayos de luz ==== */
+.fx-5::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(110deg,
+    transparent 30%,
+    rgba(255,255,255,.55) 48%,
+    rgba(255,230,240,.65) 50%,
+    rgba(255,255,255,.55) 52%,
+    transparent 70%);
+  transform:translateX(-120%);
+  animation:raySweep 7s ease-in-out infinite;}
+@keyframes raySweep{
+  0%{transform:translateX(-120%);}
+  60%,100%{transform:translateX(120%);}
+}
+.fx-5::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(110deg,transparent 40%,rgba(255,255,255,.3) 50%,transparent 60%);
+  transform:translateX(-120%);
+  animation:raySweep 7s ease-in-out infinite 3.5s;}
+
+/* ==== EFECTO 6: Pétalos / Corazones cayendo ==== */
+.fx-6 .pt{position:absolute;pointer-events:none;
+  animation:petalFall 11s linear infinite;opacity:0;}
+@keyframes petalFall{
+  0%{transform:translateY(-15vh) translateX(0) rotate(0);opacity:0;}
+  10%{opacity:.85;}
+  50%{transform:translateY(50vh) translateX(30px) rotate(360deg);}
+  90%{opacity:.85;}
+  100%{transform:translateY(115vh) translateX(-20px) rotate(720deg);opacity:0;}
+}
+
+.final-note{padding:50px 24px;text-align:center;background:#0a0a0a;}
+.final-note h2{font-family:'Playfair Display',serif;font-weight:400;font-size:26px;margin:0 0 10px;}
+.final-note p{color:#bbb;margin:0;font-size:14px;}
+.final-note .pick{color:#F2A7C3;font-weight:600;}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>Efectos de fondo para el hero</h1>
+  <p>Mirá los 6 efectos y decime cuál te gusta (o combinación). Se pueden mezclar, por ejemplo <em>halo + partículas</em>.</p>
+</div>
+
+<!-- 1. HALO -->
+<section class="demo fx-1">
+  <div class="demo-label"><b>1</b> Halo / Glow</div>
+  <div class="halo"></div>
+  <div class="halo-2"></div>
+  <div class="demo-logo">
+    <img src="logos/logo-full.png" alt="SHINE AURA">
+    <div class="demo-tag">Vestite para brillar ✨</div>
+  </div>
+  <div class="demo-desc">Resplandor rosa que respira detrás del logo. Elegante y sutil.</div>
+</section>
+
+<!-- 2. SPARKLES -->
+<section class="demo fx-2" id="fx2">
+  <div class="demo-label"><b>2</b> Partículas flotando</div>
+  <div class="demo-logo">
+    <img src="logos/logo-full.png" alt="SHINE AURA">
+    <div class="demo-tag">Vestite para brillar ✨</div>
+  </div>
+  <div class="demo-desc">Estrellitas rosas que suben lentas por toda la pantalla. Tipo aura mágica.</div>
+</section>
+
+<!-- 3. GRADIENTE -->
+<section class="demo fx-3">
+  <div class="demo-label"><b>3</b> Gradiente animado</div>
+  <div class="demo-logo">
+    <img src="logos/logo-full.png" alt="SHINE AURA">
+    <div class="demo-tag">Vestite para brillar ✨</div>
+  </div>
+  <div class="demo-desc">El fondo cambia de tono muy lento. Movimiento casi imperceptible, da vida.</div>
+</section>
+
+<!-- 4. AURORA -->
+<section class="demo fx-4">
+  <div class="demo-label"><b>4</b> Aurora / Blobs</div>
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+  <div class="blob b4"></div>
+  <div class="demo-logo">
+    <img src="logos/logo-full.png" alt="SHINE AURA">
+    <div class="demo-tag">Vestite para brillar ✨</div>
+  </div>
+  <div class="demo-desc">Manchas de color difuminadas que se mueven como niebla. El más "wow".</div>
+</section>
+
+<!-- 5. RAYOS -->
+<section class="demo fx-5">
+  <div class="demo-label"><b>5</b> Rayos de luz</div>
+  <div class="demo-logo">
+    <img src="logos/logo-full.png" alt="SHINE AURA">
+    <div class="demo-tag">Vestite para brillar ✨</div>
+  </div>
+  <div class="demo-desc">Destello que atraviesa la pantalla cada tanto. Sutil y premium.</div>
+</section>
+
+<!-- 6. PETALOS -->
+<section class="demo fx-6" id="fx6">
+  <div class="demo-label"><b>6</b> Pétalos / Corazones</div>
+  <div class="demo-logo">
+    <img src="logos/logo-full.png" alt="SHINE AURA">
+    <div class="demo-tag">Vestite para brillar ✨</div>
+  </div>
+  <div class="demo-desc">Pétalos que caen lentos de arriba abajo. Más lúdico y femenino.</div>
+</section>
+
+<div class="final-note">
+  <h2>¿Cuál te gusta?</h2>
+  <p>Decime el número (o <span class="pick">mezcla</span>, ej: "1 + 2") y lo dejo andando en la página principal.</p>
+</div>
+
+<script>
+// Generar sparkles para efecto 2
+(function(){
+  const container=document.getElementById('fx2');
+  const SVG_SPARK='<svg width="100%" height="100%" viewBox="0 0 24 24"><path d="M12 2l1.5 7.5L21 11l-7.5 1.5L12 20l-1.5-7.5L3 11l7.5-1.5z" fill="currentColor"/></svg>';
+  const count=22;
+  for(let i=0;i<count;i++){
+    const sp=document.createElement('div');
+    sp.className='sp';
+    const size=6+Math.random()*18;
+    sp.style.width=size+'px';
+    sp.style.height=size+'px';
+    sp.style.left=(Math.random()*100)+'%';
+    sp.style.animationDuration=(9+Math.random()*10)+'s';
+    sp.style.animationDelay=(-Math.random()*14)+'s';
+    const colors=['#D4789B','#F2A7C3','#FAD4E4','#E89BB5'];
+    sp.style.color=colors[Math.floor(Math.random()*colors.length)];
+    sp.style.opacity=.4+Math.random()*.5;
+    sp.innerHTML=SVG_SPARK;
+    container.appendChild(sp);
+  }
+})();
+
+// Generar pétalos para efecto 6
+(function(){
+  const container=document.getElementById('fx6');
+  const shapes=[
+    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-6.5-4.35-9-8.5C1.3 9.6 3.3 6 6.5 6c2 0 3.5 1 4.5 2.5C12 7 13.5 6 15.5 6 18.7 6 20.7 9.6 19 12.5 18.5 21 12 21 12 21z"/></svg>',
+    '<svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="12" rx="5" ry="10" transform="rotate(30 12 12)"/></svg>',
+    '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="6" r="3"/><circle cx="18" cy="12" r="3"/><circle cx="12" cy="18" r="3"/><circle cx="6" cy="12" r="3"/></svg>',
+  ];
+  const count=18;
+  for(let i=0;i<count;i++){
+    const p=document.createElement('div');
+    p.className='pt';
+    const size=14+Math.random()*14;
+    p.style.width=size+'px';
+    p.style.height=size+'px';
+    p.style.left=(Math.random()*100)+'%';
+    p.style.animationDuration=(8+Math.random()*8)+'s';
+    p.style.animationDelay=(-Math.random()*11)+'s';
+    const colors=['#D4789B','#F2A7C3','#FAD4E4','#E89BB5'];
+    p.style.color=colors[Math.floor(Math.random()*colors.length)];
+    p.style.opacity=.55+Math.random()*.4;
+    p.innerHTML=shapes[Math.floor(Math.random()*shapes.length)];
+    container.appendChild(p);
+  }
+})();
+</script>
+</body>
+</html>

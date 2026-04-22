@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pago rechazado — SHINE AURA</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;}
+body{margin:0;min-height:100vh;font-family:'Inter',sans-serif;
+  background:linear-gradient(135deg,#FDE8F2 0%,#FFF8F5 45%,#FAD4E4 100%);
+  display:flex;align-items:center;justify-content:center;padding:20px;color:#2D1B24;}
+.card{background:rgba(255,255,255,.85);backdrop-filter:blur(10px);
+  border-radius:28px;padding:48px 36px;max-width:480px;width:100%;text-align:center;
+  box-shadow:0 24px 60px rgba(212,120,155,.15);border:1px solid rgba(212,120,155,.18);}
+.icon{width:80px;height:80px;border-radius:50%;margin:0 auto 20px;
+  background:linear-gradient(135deg,#f59dae,#db5d7a);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 10px 30px rgba(219,93,122,.3);
+  animation:pop .5s cubic-bezier(.3,1.4,.5,1);}
+@keyframes pop{from{transform:scale(.3);opacity:0;}to{transform:scale(1);opacity:1;}}
+.icon svg{width:38px;height:38px;stroke:#fff;stroke-width:3;fill:none;stroke-linecap:round;}
+h1{font-family:'Playfair Display',serif;font-weight:400;font-size:30px;margin:0 0 10px;}
+h1 em{font-style:italic;color:#D4789B;}
+.lead{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:19px;color:#9B7E8C;margin:0 0 22px;}
+p{font-size:14px;line-height:1.7;color:#4A3040;margin:0 0 10px;}
+.note{background:#FDE8F2;border-left:3px solid #D4789B;border-radius:10px;
+  padding:14px 16px;text-align:left;font-size:13px;margin:22px 0;color:#4A3040;line-height:1.55;
+  display:flex;gap:10px;}
+.note .ico{font-size:18px;flex-shrink:0;}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:14px 34px;
+  background:#2D1B24;color:#FFF9F6;border-radius:999px;text-decoration:none;
+  font-size:13px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;
+  transition:background .2s,transform .15s;margin-top:12px;}
+.btn:hover{background:#D4789B;transform:translateY(-1px);}
+.btn-wa{background:#25D366;margin-left:10px;}
+.btn-wa:hover{background:#1ebe5a;}
+.brand{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:22px;color:#D4789B;margin-top:28px;}
+.btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="icon">
+    <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </div>
+  <h1>El pago fue <em>rechazado</em></h1>
+  <p class="lead">No pudimos procesar tu compra ✨</p>
+  <p>Puede ser por fondos insuficientes, datos incorrectos o un problema con la tarjeta. No se cobró nada.</p>
+  <div class="note">
+    <span class="ico">🧡</span>
+    <span>Podés intentar de nuevo con otra tarjeta o escribirnos por WhatsApp y te ayudamos.</span>
+  </div>
+  <div class="btns">
+    <a href="/" class="btn">Volver a intentar</a>
+    <a href="https://wa.me/5491133440712" target="_blank" class="btn btn-wa">Escribirnos</a>
+  </div>
+  <div class="brand">Shine Aura ✨</div>
+</div>
+</body>
+</html>
