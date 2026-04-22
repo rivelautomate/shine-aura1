@@ -1,63 +1,70 @@
 <?php
-header('Content-Type: application/json; charset=utf-8');
+require_once __DIR__ . '/db.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['error' => 'Method not allowed']);
-    exit;
-}
+// Crea la preferencia de MP para una venta ya registrada en la BD.
+// Body: {orderCode: "SA-XXX-XXX"}  — la venta ya debe existir (fue creada por /api/sales.php).
+// Devuelve {init_point, preferenceId, orderCode}.
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') sa_fail('Método no permitido', 405);
 
 $accessToken = getenv('MP_ACCESS_TOKEN');
-if (!$accessToken) {
-    http_response_code(503);
-    echo json_encode(['error' => 'MercadoPago todavía no está configurado en el servidor.']);
-    exit;
-}
+if (!$accessToken) sa_fail('MercadoPago todavía no está configurado en el servidor.', 503);
 
-$raw = file_get_contents('php://input');
-$input = json_decode($raw, true);
-if (!$input || empty($input['items'])) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Datos inválidos']);
-    exit;
-}
+$in = sa_read_json_body();
+$orderCode = trim((string)($in['orderCode'] ?? ''));
+if ($orderCode === '') sa_fail('Falta orderCode', 400);
 
-$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-$host = $_SERVER['HTTP_HOST'] ?? '';
-$siteUrl = $protocol . '://' . $host;
+$pdo = sa_db();
+$stmt = $pdo->prepare("SELECT * FROM sales WHERE order_code = :c");
+$stmt->execute([':c' => $orderCode]);
+$sale = $stmt->fetch();
+if (!$sale) sa_fail('Orden no encontrada', 404);
+if ($sale['payment_method'] !== 'mp') sa_fail('Esta orden no es de MercadoPago', 400);
 
-$customer = $input['customer'] ?? [];
-$payer = [
-    'name'    => (string)($customer['nombre']    ?? ''),
-    'surname' => (string)($customer['apellido']  ?? ''),
-    'phone'   => ['number' => (string)($customer['telefono'] ?? '')],
-];
+$items = json_decode($sale['items'], true) ?: [];
+$siteUrl = sa_site_url();
 
-$items = array_map(function ($i) {
+$mpItems = array_map(function ($i) {
     return [
         'title'       => (string)($i['name']  ?? 'Producto'),
-        'quantity'    => (int)   ($i['qty']   ?? 1),
-        'unit_price'  => (float) ($i['price'] ?? 0),
+        'quantity'    => (int)($i['qty']   ?? 1),
+        'unit_price'  => (float)($i['price'] ?? 0),
         'currency_id' => 'ARS',
     ];
-}, $input['items']);
+}, $items);
+
+// MP permite sumar el envío como item separado si existiera.
+if ((int)$sale['shipping'] > 0) {
+    $mpItems[] = [
+        'title'       => 'Envío',
+        'quantity'    => 1,
+        'unit_price'  => (float)$sale['shipping'],
+        'currency_id' => 'ARS',
+    ];
+}
 
 $preferenceData = [
-    'items'              => $items,
-    'payer'              => $payer,
-    'back_urls'          => [
-        'success' => $siteUrl . '/pago-exitoso.html',
-        'pending' => $siteUrl . '/pago-pendiente.html',
-        'failure' => $siteUrl . '/pago-rechazado.html',
+    'items'                => $mpItems,
+    'payer'                => [
+        'name'    => (string)$sale['customer_name'],
+        'surname' => (string)$sale['customer_lastname'],
+        'phone'   => ['number' => (string)$sale['customer_phone']],
     ],
-    'auto_return'        => 'approved',
+    'back_urls'            => [
+        'success' => $siteUrl . '/pago-exitoso.html?order=' . urlencode($orderCode),
+        'pending' => $siteUrl . '/pago-pendiente.html?order=' . urlencode($orderCode),
+        'failure' => $siteUrl . '/pago-rechazado.html?order=' . urlencode($orderCode),
+    ],
+    'auto_return'          => 'approved',
     'statement_descriptor' => 'SHINE AURA',
-    'external_reference' => 'sa_' . time(),
-    'metadata'           => [
-        'direccion' => (string)($customer['direccion'] ?? ''),
-        'barrio'    => (string)($customer['barrio']    ?? ''),
-        'cp'        => (string)($customer['cp']        ?? ''),
-        'nota'      => (string)($input['nota']         ?? ''),
+    'external_reference'   => $orderCode,
+    'notification_url'     => $siteUrl . '/api/mp-webhook.php',
+    'metadata'             => [
+        'order_code' => $orderCode,
+        'direccion'  => (string)$sale['customer_address'],
+        'barrio'     => (string)$sale['customer_district'],
+        'cp'         => (string)$sale['customer_zip'],
+        'nota'       => (string)$sale['customer_notes'],
     ],
 ];
 
@@ -65,32 +72,37 @@ $ch = curl_init('https://api.mercadopago.com/checkout/preferences');
 curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_POST           => true,
-    CURLOPT_POSTFIELDS     => json_encode($preferenceData),
+    CURLOPT_POSTFIELDS     => json_encode($preferenceData, JSON_UNESCAPED_UNICODE),
     CURLOPT_HTTPHEADER     => [
         'Content-Type: application/json',
         'Authorization: Bearer ' . $accessToken,
     ],
     CURLOPT_TIMEOUT        => 15,
 ]);
-
 $response = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 $curlErr  = curl_error($ch);
 curl_close($ch);
 
-if ($httpCode >= 200 && $httpCode < 300) {
-    $data = json_decode($response, true);
-    echo json_encode([
-        'init_point' => $data['init_point'] ?? null,
-        'id'         => $data['id'] ?? null,
+if ($httpCode < 200 || $httpCode >= 300) {
+    sa_fail('No se pudo crear la preferencia en MercadoPago', 502, [
+        'http_code' => $httpCode,
+        'details'   => json_decode($response, true) ?: $response,
+        'curl'      => $curlErr,
     ]);
-    exit;
 }
 
-http_response_code(502);
-echo json_encode([
-    'error'     => 'No se pudo crear la preferencia en MercadoPago',
-    'http_code' => $httpCode,
-    'details'   => json_decode($response, true) ?: $response,
-    'curl'      => $curlErr,
+$data = json_decode($response, true);
+$prefId = $data['id'] ?? null;
+$initPoint = $data['init_point'] ?? null;
+
+if ($prefId) {
+    $upd = $pdo->prepare("UPDATE sales SET mp_preference_id = :p, updated_at = datetime('now') WHERE id = :id");
+    $upd->execute([':p' => $prefId, ':id' => $sale['id']]);
+}
+
+sa_json([
+    'init_point'   => $initPoint,
+    'preferenceId' => $prefId,
+    'orderCode'    => $orderCode,
 ]);

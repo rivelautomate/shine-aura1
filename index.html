@@ -371,19 +371,18 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
   background:var(--white);color:var(--ink);outline:none;transition:border-color .2s;}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--pink-deep);}
 .field textarea{resize:vertical;}
-.pay-opts{display:flex;gap:12px;margin-bottom:14px;}
-.pay-opt{flex:1;border:1.5px solid var(--line);border-radius:14px;padding:14px 10px;
-  cursor:pointer;background:var(--white);display:flex;flex-direction:column;
-  align-items:center;gap:6px;transition:border-color .2s,background .2s;position:relative;}
-.pay-opt input[type=radio]{position:absolute;opacity:0;pointer-events:none;}
-.pay-opt.sel{border-color:var(--pink-deep);background:var(--pink-pale);}
-.pay-icon{font-size:24px;}
-.pay-label{font-size:12px;font-weight:600;letter-spacing:.04em;}
-.pay-sub{font-size:10px;color:var(--muted);}
-.submit-btn{width:100%;padding:14px;background:var(--pink-deep);color:#fff;
-  border:none;border-radius:14px;font-size:14px;font-weight:600;
-  letter-spacing:.06em;transition:background .2s,transform .15s;}
-.submit-btn:hover{background:var(--ink);transform:translateY(-1px);}
+.pay-buttons{display:flex;flex-direction:column;gap:10px;margin-top:6px;}
+.submit-btn{width:100%;padding:14px;border:none;border-radius:14px;color:#fff;
+  font-size:14px;font-weight:600;letter-spacing:.04em;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  transition:background .2s,transform .15s,opacity .2s;}
+.submit-btn .pb-icon{font-size:18px;line-height:1;}
+.submit-btn:hover{transform:translateY(-1px);}
+.submit-btn:disabled{opacity:.55;cursor:not-allowed;transform:none;}
+.btn-mp{background:linear-gradient(135deg,#00B1EA 0%,#0090C7 100%);}
+.btn-mp:hover{background:linear-gradient(135deg,#0090C7 0%,#006EA0 100%);}
+.btn-cash{background:linear-gradient(135deg,#25D366 0%,#128C7E 100%);}
+.btn-cash:hover{background:linear-gradient(135deg,#128C7E 0%,#075E54 100%);}
 
 .shipping-note{display:flex;gap:10px;align-items:flex-start;
   background:var(--pink-pale);border-left:3px solid var(--pink-deep);
@@ -688,7 +687,7 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
         <span id="orderMiniTotal">$0</span>
       </div>
     </div>
-    <form id="checkoutForm" onsubmit="submitOrder(event)" novalidate>
+    <form id="checkoutForm" onsubmit="event.preventDefault();" novalidate>
       <div class="f-row">
         <div class="field">
           <label for="cNombre">Nombre *</label>
@@ -722,27 +721,19 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
         <span>El envío se coordina por WhatsApp después de confirmar el pago. Te vamos a contactar para acordar día y horario de entrega.</span>
       </div>
       <div class="field">
-        <label>Medio de pago *</label>
-        <div class="pay-opts" id="payOpts">
-          <label class="pay-opt sel" id="pOptMp">
-            <input type="radio" name="payment" value="mp" checked>
-            <div class="pay-icon">💳</div>
-            <div class="pay-label">MercadoPago</div>
-            <div class="pay-sub">Pago online</div>
-          </label>
-          <label class="pay-opt" id="pOptEf">
-            <input type="radio" name="payment" value="efectivo">
-            <div class="pay-icon">💵</div>
-            <div class="pay-label">Efectivo</div>
-            <div class="pay-sub">Al recibir</div>
-          </label>
-        </div>
-      </div>
-      <div class="field">
         <label for="cNota">Nota (opcional)</label>
         <textarea id="cNota" rows="2" placeholder="Aclaraciones del pedido..."></textarea>
       </div>
-      <button type="submit" class="submit-btn">Enviar pedido por WhatsApp ✨</button>
+      <div class="pay-buttons">
+        <button type="button" class="submit-btn btn-mp" id="btnPayMp" onclick="submitOrder('mp')">
+          <span class="pb-icon">💳</span>
+          <span>Pagar con MercadoPago</span>
+        </button>
+        <button type="button" class="submit-btn btn-cash" id="btnPayCash" onclick="submitOrder('cash')">
+          <span class="pb-icon">💵</span>
+          <span>Pagar en efectivo (WhatsApp)</span>
+        </button>
+      </div>
     </form>
   </div>
 </div>
@@ -763,41 +754,27 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-const SA_PROD_KEY='sa_products';
-const SA_SALES_KEY='sa_sales';
 const WA_NUM='5491133440712';
-// Endpoint de backend que crea la preferencia de MercadoPago.
-// Vive en /api/create-preference.php y usa el MP_ACCESS_TOKEN del servidor.
-const MP_CREATE_URL='/api/create-preference.php';
+// Endpoints backend.
+const API_PRODUCTS   = '/api/products.php';
+const API_SALES      = '/api/sales.php';
+const API_PREFERENCE = '/api/create-preference.php';
 
-const DEFAULT_PRODUCTS=[
-  {id:'sa1',name:'Top Lencero',cat:'catsuits',tag:'Nuevo',featured:true,
-   desc:'Satén premium · escote profundo',longDesc:'Top estilo lencero en satén premium.',
-   sizes:['XS','S','M','L'],price:35000,old:null,images:[],installments:'3 cuotas sin interés'},
-  {id:'sa2',name:'Vestido Minimal',cat:'vestidos',tag:'Nuevo',featured:true,
-   desc:'Cut-out lateral · tela fluida',longDesc:'Vestido con corte lateral asimétrico.',
-   sizes:['XS','S','M','L'],price:65000,old:80000,images:[],installments:'3 cuotas sin interés'},
-  {id:'sa3',name:'Co-ord Set',cat:'conjuntos',tag:'Limitado',featured:true,
-   desc:'Top + falda midi coordinados',longDesc:'Conjunto coordinado en tela texturada.',
-   sizes:['S','M','L'],price:95000,old:null,images:[],installments:'3 cuotas sin interés'},
-  {id:'sa4',name:'Pollera Asimétrica',cat:'polleras',tag:null,featured:false,
-   desc:'Largo irregular · tela fluida',longDesc:'Pollera con largo irregular en tela liviana.',
-   sizes:['XS','S','M','L','XL'],price:48000,old:null,images:[],installments:'3 cuotas sin interés'},
-  {id:'sa5',name:'Blazer Oversize',cat:'basicos',tag:'Nuevo',featured:false,
-   desc:'Apto para noche · corte recto',longDesc:'Blazer oversize. Se puede usar como vestido corto.',
-   sizes:['S','M','L'],price:72000,old:90000,images:[],installments:'3 cuotas sin interés'},
-  {id:'sa6',name:'Vestido Drapeado',cat:'vestidos',tag:null,featured:false,
-   desc:'Un hombro · satinado',longDesc:'Vestido drapeado de un hombro en tela satinada.',
-   sizes:['XS','S','M','L'],price:78000,old:null,images:[],installments:'3 cuotas sin interés'},
-];
+// Cache de productos en memoria. Se puebla al inicio con fetch y se refresca si hace falta.
+let __SA_PRODUCTS = [];
+function getProducts(){ return __SA_PRODUCTS; }
 
-function getProducts(){
-  try{const r=localStorage.getItem(SA_PROD_KEY);return r?JSON.parse(r):[...DEFAULT_PRODUCTS];}catch{return[...DEFAULT_PRODUCTS];}
+async function loadProducts(){
+  try{
+    const r = await fetch(API_PRODUCTS, {cache:'no-store'});
+    const j = await r.json();
+    __SA_PRODUCTS = Array.isArray(j.products) ? j.products : [];
+  }catch(e){
+    __SA_PRODUCTS = [];
+  }
+  return __SA_PRODUCTS;
 }
-function getSales(){
-  try{const r=localStorage.getItem(SA_SALES_KEY);return r?JSON.parse(r):[]}catch{return[];}
-}
-function saveSales(l){localStorage.setItem(SA_SALES_KEY,JSON.stringify(l));}
+
 function fmt(n){return'$'+Number(n).toLocaleString('es-AR');}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
@@ -870,87 +847,112 @@ function openCheckout(){
 }
 function closeCheckout(){document.getElementById('chOverlay').classList.remove('open');document.body.style.overflow='';}
 
-function submitOrder(e){
-  e.preventDefault();
-  const n=document.getElementById('cNombre').value.trim();
-  const a=document.getElementById('cApellido').value.trim();
-  const t=document.getElementById('cTel').value.trim();
-  const d=document.getElementById('cDir').value.trim();
-  const b=document.getElementById('cBarrio').value.trim();
-  const cp=document.getElementById('cCp').value.trim();
-  const p=document.querySelector('input[name="payment"]:checked').value;
-  const nota=document.getElementById('cNota').value.trim();
-  if(!n||!a||!t||!d||!b||!cp){toast('Completá todos los campos obligatorios');return;}
-
-  if(p==='mp'){
-    // Solo las ventas por MercadoPago quedan registradas en el panel admin
-    const sales=getSales();
-    const saleId='sale'+Date.now();
-    sales.unshift({id:saleId,date:new Date().toISOString(),
-      customer:{nombre:n,apellido:a,telefono:t,direccion:`${d}, ${b} (CP ${cp})`},
-      items:cart.map(i=>({name:i.name,qty:i.qty,price:i.price})),
-      total:cartTotal(),payment:p,nota,status:'pendiente'});
-    saveSales(sales);
-
-    toast('Conectando con MercadoPago... 💳');
-    const submitBtn=document.querySelector('#checkoutForm .submit-btn');
-    if(submitBtn){submitBtn.disabled=true;submitBtn.textContent='Conectando con MercadoPago...';}
-
-    fetch(MP_CREATE_URL,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        items:cart.map(i=>({name:i.name,qty:i.qty,price:i.price})),
-        customer:{nombre:n,apellido:a,telefono:t,direccion:d,barrio:b,cp},
-        nota
-      })
-    })
-    .then(async r=>{
-      const data=await r.json().catch(()=>({}));
-      if(r.ok && data.init_point){
-        window.location.href=data.init_point;
-      } else {
-        if(submitBtn){submitBtn.disabled=false;submitBtn.textContent='Enviar pedido por WhatsApp ✨';}
-        toast(data.error||'MercadoPago no está disponible. Probá con efectivo.');
-      }
-    })
-    .catch(()=>{
-      if(submitBtn){submitBtn.disabled=false;submitBtn.textContent='Enviar pedido por WhatsApp ✨';}
-      toast('No pudimos conectar con MercadoPago. Probá de nuevo.');
-    });
-    return;
-  } else {
-    // Efectivo: solo deriva a WhatsApp con el resumen (no se registra en admin)
-    const lines=[
-      '✨ *Pedido SHINE AURA — Pago en efectivo al recibir*','',
-      `👤 *Cliente:* ${n} ${a}`,
-      `📱 *Teléfono:* ${t}`,
-      `📦 *Dirección:* ${d}, ${b}`,
-      `📮 *CP:* ${cp}`,'',
-      '🛍 *Productos:*',
-      ...cart.map(i=>`• ${i.qty}× ${i.name}  —  ${fmt(i.price*i.qty)}`),
-      '',`💰 *Total:* ${fmt(cartTotal())}`,
-      `💳 *Pago:* Efectivo al recibir`,
-      nota?`📝 *Nota:* ${nota}`:null,
-      '','🧡 El envío lo coordinamos por acá.',
-    ].filter(x=>x!==null);
-    window.open(`https://wa.me/${WA_NUM}?text=${encodeURIComponent(lines.join('\n'))}`,'_blank');
-    toast('¡Pedido enviado! Redirigiendo a WhatsApp 💌');
-  }
-
-  cart=[];updateCartUI();closeCheckout();
-  document.getElementById('checkoutForm').reset();
-  document.getElementById('pOptMp').classList.add('sel');
-  document.getElementById('pOptEf').classList.remove('sel');
+function buildWhatsappMessage(sale, opts){
+  const o = opts || {};
+  const title = o.paid
+    ? '✅ *Pedido SHINE AURA — Pago confirmado por MercadoPago*'
+    : '✨ *Pedido SHINE AURA — Pago en efectivo al recibir*';
+  const c = sale.customer || {};
+  const items = Array.isArray(sale.items) ? sale.items : [];
+  const lines = [
+    title, '',
+    `🧾 *Nº de pedido:* ${sale.orderCode}`,
+    `👤 *Cliente:* ${c.name || ''} ${c.lastname || ''}`.trim(),
+    `📱 *Teléfono:* ${c.phone || ''}`,
+    `📦 *Dirección:* ${c.address || ''}, ${c.district || ''}`,
+    `📮 *CP:* ${c.zip || ''}`, '',
+    '🛍 *Productos:*',
+    ...items.map(i => `• ${i.qty}× ${i.name}  —  ${fmt(i.price * i.qty)}`),
+    '', `💰 *Total:* ${fmt(sale.total)}`,
+    `💳 *Pago:* ${o.paid ? 'MercadoPago (pagado)' : 'Efectivo al recibir'}`,
+    c.notes ? `📝 *Nota:* ${c.notes}` : null,
+    '', '🧡 Te contactamos por acá para coordinar el envío.',
+  ].filter(x => x !== null);
+  return lines.join('\n');
 }
 
-document.getElementById('payOpts').addEventListener('click',function(e){
-  const opt=e.target.closest('.pay-opt');
-  if(!opt)return;
-  document.querySelectorAll('.pay-opt').forEach(o=>o.classList.remove('sel'));
-  opt.classList.add('sel');
-  opt.querySelector('input[type=radio]').checked=true;
-});
+function waUrlForSale(sale, opts){
+  return `https://wa.me/${WA_NUM}?text=${encodeURIComponent(buildWhatsappMessage(sale, opts || {}))}`;
+}
+
+async function submitOrder(method){
+  const n  = document.getElementById('cNombre').value.trim();
+  const a  = document.getElementById('cApellido').value.trim();
+  const t  = document.getElementById('cTel').value.trim();
+  const d  = document.getElementById('cDir').value.trim();
+  const b  = document.getElementById('cBarrio').value.trim();
+  const cp = document.getElementById('cCp').value.trim();
+  const nota = document.getElementById('cNota').value.trim();
+  if(!n || !a || !t || !d || !b || !cp){ toast('Completá todos los campos obligatorios'); return; }
+  if(cart.length === 0){ toast('Tu carrito está vacío'); return; }
+
+  const btnMp   = document.getElementById('btnPayMp');
+  const btnCash = document.getElementById('btnPayCash');
+  const setBusy = (busy, msg) => {
+    btnMp.disabled = busy; btnCash.disabled = busy;
+    if(busy){
+      const target = method === 'mp' ? btnMp : btnCash;
+      target.dataset.origText = target.dataset.origText || target.querySelector('span:not(.pb-icon)').textContent;
+      target.querySelector('span:not(.pb-icon)').textContent = msg || 'Procesando...';
+    } else {
+      [btnMp, btnCash].forEach(btn => {
+        if(btn.dataset.origText) btn.querySelector('span:not(.pb-icon)').textContent = btn.dataset.origText;
+      });
+    }
+  };
+
+  const payload = {
+    customer: {
+      name: n, lastname: a, phone: t,
+      address: d, district: b, zip: cp, notes: nota
+    },
+    items: cart.map(i => ({name: i.name, qty: i.qty, price: i.price, size: i.size || '', productId: i.productId || null})),
+    paymentMethod: method,
+  };
+
+  setBusy(true, method === 'mp' ? 'Creando pedido...' : 'Registrando pedido...');
+
+  let sale;
+  try{
+    const r = await fetch(API_SALES, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const j = await r.json();
+    if(!r.ok || !j.sale) throw new Error(j.error || 'No se pudo registrar el pedido');
+    sale = j.sale;
+  }catch(err){
+    setBusy(false);
+    toast(err.message || 'Error al crear el pedido');
+    return;
+  }
+
+  if(method === 'mp'){
+    setBusy(true, 'Conectando con MercadoPago...');
+    try{
+      const r = await fetch(API_PREFERENCE, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({orderCode: sale.orderCode})
+      });
+      const j = await r.json();
+      if(!r.ok || !j.init_point) throw new Error(j.error || 'MercadoPago no disponible');
+      cart = []; updateCartUI();
+      window.location.href = j.init_point;
+    }catch(err){
+      setBusy(false);
+      toast(err.message || 'No pudimos conectar con MercadoPago. Probá con efectivo.');
+    }
+    return;
+  }
+
+  // Efectivo → abrimos WhatsApp con el resumen del pedido.
+  const waUrl = waUrlForSale(sale, {paid:false});
+  window.open(waUrl, '_blank');
+  toast('¡Pedido enviado! Redirigiendo a WhatsApp 💌');
+  cart = []; updateCartUI(); closeCheckout();
+  document.getElementById('checkoutForm').reset();
+  setBusy(false);
+}
 
 // ===== RENDER =====
 function productCardHTML(p){
@@ -1074,8 +1076,13 @@ function toast(msg){
 // Page loader
 window.addEventListener('load',()=>{setTimeout(()=>document.getElementById('pageLoader').classList.add('hidden'),700);});
 
-// Sync across tabs
-window.addEventListener('storage',()=>{renderSlider();renderProducts();});
+// Refresh de productos cada 60s para que si el admin cambia algo el cliente lo vea sin reload.
+async function refreshProducts(){
+  await loadProducts();
+  renderSlider();
+  renderProducts();
+}
+setInterval(refreshProducts, 60000);
 
 // Pétalos cayendo en el hero
 (function(){
@@ -1105,9 +1112,11 @@ window.addEventListener('storage',()=>{renderSlider();renderProducts();});
 })();
 
 // Init
-renderSlider();
-renderProducts();
 updateCartUI();
+loadProducts().then(() => {
+  renderSlider();
+  renderProducts();
+});
 </script>
 </body>
 </html>

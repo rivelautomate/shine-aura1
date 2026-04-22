@@ -11,7 +11,7 @@ body{margin:0;min-height:100vh;font-family:'Inter',sans-serif;
   background:linear-gradient(135deg,#FDE8F2 0%,#FFF8F5 45%,#FAD4E4 100%);
   display:flex;align-items:center;justify-content:center;padding:20px;color:#2D1B24;}
 .card{background:rgba(255,255,255,.85);backdrop-filter:blur(10px);
-  border-radius:28px;padding:48px 36px;max-width:480px;width:100%;text-align:center;
+  border-radius:28px;padding:40px 32px;max-width:520px;width:100%;text-align:center;
   box-shadow:0 24px 60px rgba(212,120,155,.15);border:1px solid rgba(212,120,155,.18);}
 .icon{width:80px;height:80px;border-radius:50%;margin:0 auto 20px;
   background:linear-gradient(135deg,#f59dae,#db5d7a);
@@ -24,19 +24,22 @@ h1{font-family:'Playfair Display',serif;font-weight:400;font-size:30px;margin:0 
 h1 em{font-style:italic;color:#D4789B;}
 .lead{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:19px;color:#9B7E8C;margin:0 0 22px;}
 p{font-size:14px;line-height:1.7;color:#4A3040;margin:0 0 10px;}
+.order-code{display:inline-block;background:#FDE8F2;padding:6px 14px;border-radius:999px;
+  font-weight:600;font-size:12px;letter-spacing:.05em;color:#D4789B;margin-bottom:14px;}
 .note{background:#FDE8F2;border-left:3px solid #D4789B;border-radius:10px;
   padding:14px 16px;text-align:left;font-size:13px;margin:22px 0;color:#4A3040;line-height:1.55;
   display:flex;gap:10px;}
 .note .ico{font-size:18px;flex-shrink:0;}
-.btn{display:inline-flex;align-items:center;gap:8px;padding:14px 34px;
-  background:#2D1B24;color:#FFF9F6;border-radius:999px;text-decoration:none;
-  font-size:13px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;
-  transition:background .2s,transform .15s;margin-top:12px;}
-.btn:hover{background:#D4789B;transform:translateY(-1px);}
-.btn-wa{background:#25D366;margin-left:10px;}
-.btn-wa:hover{background:#1ebe5a;}
-.brand{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:22px;color:#D4789B;margin-top:28px;}
-.btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 24px;
+  border-radius:999px;text-decoration:none;font-size:13px;font-weight:600;letter-spacing:.08em;
+  transition:transform .15s,filter .2s;width:100%;border:none;cursor:pointer;}
+.btn:hover{transform:translateY(-1px);filter:brightness(.95);}
+.btn-dark{background:#2D1B24;color:#FFF9F6;margin-bottom:10px;}
+.btn-dark:hover{background:#D4789B;}
+.btn-wa{background:linear-gradient(135deg,#25D366 0%,#128C7E 100%);color:#fff;margin-bottom:10px;}
+.btn-ghost{background:transparent;color:#2D1B24;border:1.5px solid rgba(45,27,36,.2);}
+.btn-ghost:hover{background:rgba(45,27,36,.05);}
+.brand{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:22px;color:#D4789B;margin-top:26px;}
 </style>
 </head>
 <body>
@@ -46,16 +49,28 @@ p{font-size:14px;line-height:1.7;color:#4A3040;margin:0 0 10px;}
   </div>
   <h1>El pago fue <em>rechazado</em></h1>
   <p class="lead">No pudimos procesar tu compra ✨</p>
+  <div id="codeWrap"></div>
   <p>Puede ser por fondos insuficientes, datos incorrectos o un problema con la tarjeta. No se cobró nada.</p>
   <div class="note">
     <span class="ico">🧡</span>
-    <span>Podés intentar de nuevo con otra tarjeta o escribirnos por WhatsApp y te ayudamos.</span>
+    <span>Podés intentar de nuevo con otra tarjeta, o pagar en efectivo al recibir coordinando con nosotras por WhatsApp.</span>
   </div>
-  <div class="btns">
-    <a href="/" class="btn">Volver a intentar</a>
-    <a href="https://wa.me/5491133440712" target="_blank" class="btn btn-wa">Escribirnos</a>
-  </div>
+  <a href="/" class="btn btn-dark">Volver a intentar</a>
+  <a class="btn btn-wa" target="_blank" rel="noopener"
+     href="https://wa.me/5491133440712?text=Hola!%20Mi%20pago%20en%20Shine%20Aura%20fue%20rechazado.%20Puedo%20abonar%20en%20efectivo%3F">
+    Pagar en efectivo por WhatsApp
+  </a>
   <div class="brand">Shine Aura ✨</div>
 </div>
+<script>
+(function(){
+  const q = new URLSearchParams(location.search);
+  const code = q.get('order') || q.get('external_reference') || '';
+  if(code){
+    document.getElementById('codeWrap').innerHTML =
+      '<div class="order-code">Pedido ' + code.replace(/[<>"&]/g,'') + '</div>';
+  }
+})();
+</script>
 </body>
 </html>
