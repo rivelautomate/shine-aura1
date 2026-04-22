@@ -1,3 +1,4 @@
+<!doctype html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
@@ -22,7 +23,6 @@ body{margin:0;padding:0;background:var(--cream);color:var(--ink);
 a{text-decoration:none;color:inherit;}
 img{max-width:100%;}
 button{cursor:pointer;font-family:inherit;}
-<!doctype html>
 
 /* PAGE LOADER */
 .page-loader{position:fixed;inset:0;background:var(--pink-light);z-index:9999;
@@ -470,7 +470,7 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
   .pd-price{font-size:21px;}
   .pd-desc{font-size:16px;}
   .pd-longdesc{font-size:13.5px;line-height:1.55;}
-  .pd-main{aspect-ratio:1/1;}
+  .pd-main{aspect-ratio:auto;height:45vh;min-height:240px;max-height:420px;}
   .pd-nav-arrow{width:44px;height:44px;}
   .pd-close{top:10px;right:10px;width:38px;height:38px;font-size:16px;}
   .pd-back{top:10px;left:10px;padding:8px 12px;font-size:11px;}
@@ -483,7 +483,7 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
   .pd-add-btn{padding:15px;font-size:13px;}
 }
 @media(max-width:420px){
-  .pd-main{aspect-ratio:4/5;}
+  .pd-main{height:40vh;min-height:220px;max-height:360px;}
   .pd-info{padding:20px 14px 24px;gap:10px;}
   .pd-title{font-size:22px;}
   .pd-price{font-size:20px;}
@@ -524,6 +524,17 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
   .contact-card{min-width:130px;padding:24px 20px;}
   .benefits-grid{grid-template-columns:1fr;gap:28px;}
   .slider-track{animation-duration:32s;}
+  /* Header más compacto */
+  .header-inner{height:58px;padding:0 16px;}
+  .logo-mark{width:40px;height:40px;}
+  .cart-btn{padding:7px 10px;font-size:12px;}
+  /* Hero: ocupar menos espacio, que no quede todo vacío */
+  .hero{min-height:auto;padding:36px 0 40px;}
+  .hero-content{padding:24px 20px 28px;}
+  .hero-logo-wrap{margin-bottom:18px;}
+  .hero-logo-img{width:clamp(220px,70vw,380px);}
+  .hero-tagline{margin:0 0 22px;font-size:15px;}
+  .scroll-hint{display:none;}
   /* Product card en mobile: ajustes finos */
   .card-body{padding:12px 12px 14px;}
   .card-name{font-size:16px;}
@@ -535,9 +546,10 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
   .ch-modal{width:100%;max-height:92vh;padding:22px 18px 26px;
     border-radius:24px 24px 0 0;}
   .modal-head h3{font-size:20px;}
-  /* Footer en mobile más compacto */
-  .float-btns{right:12px;bottom:16px;gap:9px;}
-  .fb{width:46px;height:46px;}
+  /* Floating buttons más chicos y más abajo para no tapar el hero */
+  .float-btns{right:12px;bottom:14px;gap:8px;}
+  .fb{width:44px;height:44px;}
+  .fb svg{width:20px;height:20px;}
 }
 @media(max-width:420px){
   .products-grid{grid-template-columns:repeat(2,1fr);gap:9px;}
@@ -1398,3 +1410,4 @@ loadProducts().then(() => {
 </script>
 </body>
 </html>
+
