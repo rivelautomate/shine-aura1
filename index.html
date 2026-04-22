@@ -465,7 +465,7 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
   .pd-overlay{padding:0;align-items:stretch;overflow:hidden;}
   .pd-modal{grid-template-columns:1fr;max-height:100vh;height:100vh;
     border-radius:0;overflow-y:auto;box-shadow:none;}
-  .pd-info{padding:22px 18px 28px;gap:12px;}
+  .pd-info{padding:24px 20px 32px;gap:14px;}
   .pd-title{font-size:24px;line-height:1.2;}
   .pd-price{font-size:21px;}
   .pd-desc{font-size:16px;}
@@ -544,6 +544,16 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
   .card-price{font-size:14.5px;}
   .card-cat{font-size:9.5px;}
   .card-badge{font-size:8.5px;padding:3px 8px;}
+  /* Slider de Novedades: cards más chicas para que 2 entren sin cortes */
+  .slider-scroll .product-card{flex:0 0 min(200px,45vw);}
+  .slider-scroll .card-img{aspect-ratio:3/4;}
+  .slider-track{gap:12px;padding:0 16px;}
+  .featured-section{padding:56px 0;}
+  .featured-header{padding:0 20px;margin-bottom:28px;}
+  /* Barra de anuncios: altura un toque mayor para que respire */
+  .ann-bar{font-size:10.5px;letter-spacing:.15em;}
+  /* Section title de productos */
+  .products-section{padding:56px 16px;}
   /* Checkout modal: más compacto en mobile */
   .ch-overlay{padding:0;align-items:flex-end;}
   .ch-modal{width:100%;max-height:92vh;padding:22px 18px 26px;
@@ -1413,5 +1423,3 @@ loadProducts().then(() => {
 </script>
 </body>
 </html>
-
-
