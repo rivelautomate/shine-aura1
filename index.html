@@ -470,7 +470,7 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
   .pd-price{font-size:21px;}
   .pd-desc{font-size:16px;}
   .pd-longdesc{font-size:13.5px;line-height:1.55;}
-  .pd-main{aspect-ratio:auto;height:45vh;min-height:240px;max-height:420px;}
+  .pd-main{aspect-ratio:auto;height:38vh;min-height:200px;max-height:360px;}
   .pd-nav-arrow{width:44px;height:44px;}
   .pd-close{top:10px;right:10px;width:38px;height:38px;font-size:16px;}
   .pd-back{top:10px;left:10px;padding:8px 12px;font-size:11px;}
@@ -483,7 +483,7 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
   .pd-add-btn{padding:15px;font-size:13px;}
 }
 @media(max-width:420px){
-  .pd-main{height:40vh;min-height:220px;max-height:360px;}
+  .pd-main{height:34vh;min-height:180px;max-height:300px;}
   .pd-info{padding:20px 14px 24px;gap:10px;}
   .pd-title{font-size:22px;}
   .pd-price{font-size:20px;}
@@ -535,10 +535,13 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
   .hero-logo-img{width:clamp(220px,70vw,380px);}
   .hero-tagline{margin:0 0 22px;font-size:15px;}
   .scroll-hint{display:none;}
-  /* Product card en mobile: ajustes finos */
+  /* Product card en mobile: card más compacta (cuadrada en vez de 3:4) */
+  .card-img{aspect-ratio:1/1;}
+  .no-img-box svg{width:28px;height:28px;}
+  .no-img-txt{font-size:11px;}
   .card-body{padding:12px 12px 14px;}
-  .card-name{font-size:16px;}
-  .card-price{font-size:15px;}
+  .card-name{font-size:15px;}
+  .card-price{font-size:14.5px;}
   .card-cat{font-size:9.5px;}
   .card-badge{font-size:8.5px;padding:3px 8px;}
   /* Checkout modal: más compacto en mobile */
@@ -546,8 +549,8 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
   .ch-modal{width:100%;max-height:92vh;padding:22px 18px 26px;
     border-radius:24px 24px 0 0;}
   .modal-head h3{font-size:20px;}
-  /* Floating buttons más chicos y más abajo para no tapar el hero */
-  .float-btns{right:12px;bottom:14px;gap:8px;}
+  /* Floating buttons: respetar la barra del sistema en mobile */
+  .float-btns{right:12px;bottom:calc(20px + env(safe-area-inset-bottom,0px));gap:8px;}
   .fb{width:44px;height:44px;}
   .fb svg{width:20px;height:20px;}
 }
@@ -1410,4 +1413,5 @@ loadProducts().then(() => {
 </script>
 </body>
 </html>
+
 
