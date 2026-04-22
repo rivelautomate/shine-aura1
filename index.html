@@ -1,4 +1,3 @@
-<!doctype html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
@@ -23,6 +22,7 @@ body{margin:0;padding:0;background:var(--cream);color:var(--ink);
 a{text-decoration:none;color:inherit;}
 img{max-width:100%;}
 button{cursor:pointer;font-family:inherit;}
+<!doctype html>
 
 /* PAGE LOADER */
 .page-loader{position:fixed;inset:0;background:var(--pink-light);z-index:9999;
@@ -448,29 +448,46 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
 .pd-price-old{font-size:15px;font-weight:400;color:var(--muted);text-decoration:line-through;}
 .pd-desc{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:17px;
   color:var(--muted);line-height:1.5;margin:0;}
-.pd-longdesc{font-size:14px;color:var(--ink-soft,#4A3040);line-height:1.65;margin:0;}
-.pd-sizes-label{font-size:10px;letter-spacing:.22em;text-transform:uppercase;
-  font-weight:600;color:var(--muted);margin-bottom:8px;}
-.pd-sizes{display:flex;gap:8px;flex-wrap:wrap;}
-.pd-size-chip{padding:10px 16px;border-radius:10px;border:1.5px solid var(--line);
-  background:var(--white);color:var(--ink);font-family:inherit;font-size:13px;font-weight:500;
-  cursor:pointer;min-width:50px;transition:border-color .2s,background .2s;}
-.pd-size-chip:hover{border-color:var(--pink-deep);}
-.pd-size-chip.active{border-color:var(--pink-deep);background:var(--pink-pale);color:var(--ink);}
-.pd-installments{font-size:12px;color:var(--muted);padding:10px 14px;background:var(--cream-2);
-  border-radius:10px;text-align:center;}
+.pd-longdesc{font-size:14px;color:var(--ink-soft,#4A3040);line-height:1.65;margin:0;
+  white-space:pre-wrap;}
+.pd-perks{display:flex;flex-direction:column;gap:10px;margin-top:4px;
+  padding:14px;background:var(--cream-2);border-radius:14px;}
+.pd-perk{display:flex;align-items:flex-start;gap:10px;}
+.pd-perk-ico{font-size:18px;line-height:1.4;flex-shrink:0;width:22px;text-align:center;}
+.pd-perk-ttl{font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--ink);line-height:1.3;}
+.pd-perk-sub{font-size:12px;color:var(--muted);margin-top:1px;line-height:1.4;}
 .pd-add-btn{margin-top:auto;padding:16px;background:var(--ink);color:var(--cream);
   border:none;border-radius:14px;font-size:14px;font-weight:600;letter-spacing:.08em;
   text-transform:uppercase;cursor:pointer;transition:background .2s,transform .15s;}
 .pd-add-btn:hover{background:var(--pink-deep);transform:translateY(-1px);}
 
 @media(max-width:820px){
-  .pd-modal{grid-template-columns:1fr;max-height:96vh;}
-  .pd-info{padding:28px 22px 24px;}
-  .pd-title{font-size:26px;}
-  .pd-price{font-size:20px;}
+  .pd-overlay{padding:0;align-items:stretch;overflow:hidden;}
+  .pd-modal{grid-template-columns:1fr;max-height:100vh;height:100vh;
+    border-radius:0;overflow-y:auto;box-shadow:none;}
+  .pd-info{padding:22px 18px 28px;gap:12px;}
+  .pd-title{font-size:24px;line-height:1.2;}
+  .pd-price{font-size:21px;}
+  .pd-desc{font-size:16px;}
+  .pd-longdesc{font-size:13.5px;line-height:1.55;}
+  .pd-main{aspect-ratio:1/1;}
+  .pd-nav-arrow{width:44px;height:44px;}
+  .pd-close{top:10px;right:10px;width:38px;height:38px;font-size:16px;}
+  .pd-back{top:10px;left:10px;padding:8px 12px;font-size:11px;}
+  .pd-thumbs{padding:10px;gap:6px;}
+  .pd-thumb{flex:0 0 56px;height:56px;}
+  .pd-perks{padding:12px 14px;gap:9px;}
+  .pd-perk-ico{font-size:17px;width:20px;}
+  .pd-perk-ttl{font-size:12px;}
+  .pd-perk-sub{font-size:11.5px;line-height:1.4;}
+  .pd-add-btn{padding:15px;font-size:13px;}
+}
+@media(max-width:420px){
   .pd-main{aspect-ratio:4/5;}
-  .pd-nav-arrow{width:38px;height:38px;}
+  .pd-info{padding:20px 14px 24px;gap:10px;}
+  .pd-title{font-size:22px;}
+  .pd-price{font-size:20px;}
+  .pd-cat-chip{padding:4px 10px;font-size:9.5px;}
 }
 
 /* FLOATING BUTTONS */
@@ -507,11 +524,29 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
   .contact-card{min-width:130px;padding:24px 20px;}
   .benefits-grid{grid-template-columns:1fr;gap:28px;}
   .slider-track{animation-duration:32s;}
+  /* Product card en mobile: ajustes finos */
+  .card-body{padding:12px 12px 14px;}
+  .card-name{font-size:16px;}
+  .card-price{font-size:15px;}
+  .card-cat{font-size:9.5px;}
+  .card-badge{font-size:8.5px;padding:3px 8px;}
+  /* Checkout modal: más compacto en mobile */
+  .ch-overlay{padding:0;align-items:flex-end;}
+  .ch-modal{width:100%;max-height:92vh;padding:22px 18px 26px;
+    border-radius:24px 24px 0 0;}
+  .modal-head h3{font-size:20px;}
+  /* Footer en mobile más compacto */
+  .float-btns{right:12px;bottom:16px;gap:9px;}
+  .fb{width:46px;height:46px;}
 }
 @media(max-width:420px){
   .products-grid{grid-template-columns:repeat(2,1fr);gap:9px;}
   .section{padding:48px 14px;}
-  .ch-modal{padding:22px 16px 28px;}
+  .ch-modal{padding:20px 14px 22px;}
+  .card-body{padding:10px 10px 12px;}
+  .card-name{font-size:15px;line-height:1.15;}
+  .card-price{font-size:14.5px;}
+  .submit-btn{padding:13px;font-size:13px;}
 }
 </style>
 </head>
@@ -755,12 +790,32 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
       <h2 class="pd-title" id="pdTitle"></h2>
       <div class="pd-price" id="pdPrice"></div>
       <p class="pd-desc" id="pdDesc"></p>
-      <p class="pd-longdesc" id="pdLongDesc"></p>
-      <div id="pdSizesWrap">
-        <div class="pd-sizes-label">Talle:</div>
-        <div class="pd-sizes" id="pdSizes"></div>
+      <div class="pd-longdesc" id="pdLongDesc"></div>
+
+      <div class="pd-perks">
+        <div class="pd-perk">
+          <span class="pd-perk-ico">💳</span>
+          <div>
+            <div class="pd-perk-ttl">Pago</div>
+            <div class="pd-perk-sub">MercadoPago online o efectivo al recibir</div>
+          </div>
+        </div>
+        <div class="pd-perk">
+          <span class="pd-perk-ico">📦</span>
+          <div>
+            <div class="pd-perk-ttl">Envío</div>
+            <div class="pd-perk-sub">CABA y GBA, coordinamos por WhatsApp</div>
+          </div>
+        </div>
+        <div class="pd-perk">
+          <span class="pd-perk-ico">💬</span>
+          <div>
+            <div class="pd-perk-ttl">Atención personalizada</div>
+            <div class="pd-perk-sub">Dudas, cambios y asesoramiento por WhatsApp</div>
+          </div>
+        </div>
       </div>
-      <div id="pdInstallments" class="pd-installments"></div>
+
       <button class="pd-add-btn" onclick="pdAddToCart()">Agregar al carrito ✨</button>
     </div>
   </div>
@@ -1104,14 +1159,12 @@ function productCardHTML(p){
 // ===== PRODUCT DETAIL =====
 let _pdProduct = null;
 let _pdImgIdx = 0;
-let _pdSize = null;
 
 function openProductDetail(pid){
   const p = getProducts().find(x => x.id === pid);
   if(!p) return;
   _pdProduct = p;
   _pdImgIdx = 0;
-  _pdSize = (p.sizes && p.sizes[0]) || null;
   renderProductDetail();
   const ov = document.getElementById('pdOverlay');
   ov.classList.add('open');
@@ -1167,22 +1220,6 @@ function renderProductDetail(){
   const longEl = document.getElementById('pdLongDesc');
   if(p.longDesc && p.longDesc !== p.desc){ longEl.textContent = p.longDesc; longEl.style.display = ''; } else { longEl.style.display = 'none'; }
 
-  // Talles
-  const sizesWrap = document.getElementById('pdSizesWrap');
-  const sizesEl = document.getElementById('pdSizes');
-  if(p.sizes && p.sizes.length){
-    sizesWrap.style.display = '';
-    sizesEl.innerHTML = p.sizes.map(s => `
-      <button class="pd-size-chip ${s === _pdSize ? 'active' : ''}" onclick="pdSetSize('${esc(s).replace(/'/g,"\\'")}')">${esc(s)}</button>
-    `).join('');
-  } else {
-    sizesWrap.style.display = 'none';
-  }
-
-  // Cuotas
-  const instEl = document.getElementById('pdInstallments');
-  if(p.installments){ instEl.textContent = '💳 ' + p.installments; instEl.style.display = ''; }
-  else { instEl.style.display = 'none'; }
 }
 
 function pdPrevImage(e){
@@ -1202,16 +1239,10 @@ function pdNextImage(e){
   renderProductDetail();
 }
 function pdSetImage(i){ _pdImgIdx = i; renderProductDetail(); }
-function pdSetSize(s){ _pdSize = s; renderProductDetail(); }
 
 function pdAddToCart(){
   if(!_pdProduct) return;
-  const p = _pdProduct;
-  if(p.sizes && p.sizes.length && !_pdSize){
-    toast('Elegí un talle primero');
-    return;
-  }
-  addToCart(p, _pdSize);
+  addToCart(_pdProduct);
 }
 
 // Flechas de teclado para navegar fotos cuando el detalle está abierto
