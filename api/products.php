@@ -32,6 +32,23 @@ function sa_unique_slug(PDO $pdo, string $base, ?int $ignoreId = null): string {
     }
 }
 
+// Normaliza la lista de colores: cada item queda como {name: string, hex: '#RRGGBB'}.
+function sa_sanitize_colors($raw): array {
+    if (!is_array($raw)) return [];
+    $out = [];
+    foreach ($raw as $c) {
+        if (!is_array($c)) continue;
+        $name = isset($c['name']) ? trim((string)$c['name']) : '';
+        $hex  = isset($c['hex'])  ? trim((string)$c['hex'])  : '';
+        if ($hex !== '' && $hex[0] !== '#') $hex = '#' . $hex;
+        if (!preg_match('/^#[0-9a-fA-F]{6}$/', $hex)) continue;
+        if ($name === '') continue;
+        $out[] = ['name' => $name, 'hex' => strtoupper($hex)];
+        if (count($out) >= 20) break;
+    }
+    return $out;
+}
+
 function sa_validate_product_payload(array $in, bool $partial = false): array {
     $required = ['name', 'cat', 'price'];
     foreach ($required as $k) {
@@ -77,8 +94,8 @@ if ($method === 'POST') {
     $slug = sa_unique_slug($pdo, sa_slugify($in['slug'] ?? $in['name']));
 
     $stmt = $pdo->prepare("
-        INSERT INTO products (slug, name, cat, tag, featured, description, long_description, sizes, price, old_price, images, installments, stock, active, sort_order)
-        VALUES (:slug, :name, :cat, :tag, :featured, :desc, :long, :sizes, :price, :old, :images, :inst, :stock, :active, :ord)
+        INSERT INTO products (slug, name, cat, tag, featured, description, long_description, sizes, colors, price, old_price, images, installments, stock, active, sort_order)
+        VALUES (:slug, :name, :cat, :tag, :featured, :desc, :long, :sizes, :colors, :price, :old, :images, :inst, :stock, :active, :ord)
     ");
     $stmt->execute([
         ':slug'     => $slug,
@@ -89,6 +106,7 @@ if ($method === 'POST') {
         ':desc'     => (string)($in['desc'] ?? ''),
         ':long'     => (string)($in['longDesc'] ?? ''),
         ':sizes'    => json_encode(is_array($in['sizes'] ?? null) ? $in['sizes'] : []),
+        ':colors'   => json_encode(sa_sanitize_colors($in['colors'] ?? [])),
         ':price'    => (int)$in['price'],
         ':old'      => isset($in['old']) && $in['old'] !== '' && $in['old'] !== null ? (int)$in['old'] : null,
         ':images'   => json_encode(is_array($in['images'] ?? null) ? $in['images'] : []),
@@ -129,6 +147,7 @@ if ($method === 'PUT') {
         'description'      => $in['desc']         ?? $row['description'],
         'long_description' => $in['longDesc']     ?? $row['long_description'],
         'sizes'            => isset($in['sizes']) ? json_encode(is_array($in['sizes']) ? $in['sizes'] : []) : $row['sizes'],
+        'colors'           => isset($in['colors']) ? json_encode(sa_sanitize_colors($in['colors'])) : ($row['colors'] ?? '[]'),
         'price'            => isset($in['price']) ? (int)$in['price'] : (int)$row['price'],
         'old_price'        => array_key_exists('old', $in) ? ($in['old'] !== '' && $in['old'] !== null ? (int)$in['old'] : null) : $row['old_price'],
         'images'           => isset($in['images']) ? json_encode(is_array($in['images']) ? $in['images'] : []) : $row['images'],
