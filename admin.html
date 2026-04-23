@@ -202,6 +202,23 @@ html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
   background:rgba(10,10,10,.75);color:#fff;border:none;cursor:pointer;font-size:13px;display:grid;place-items:center;padding:0;}
 .img-thumb .rm:hover{background:var(--red);}
 
+/* COLORS EDITOR */
+.colors-editor{display:flex;flex-direction:column;gap:10px;}
+.color-add-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+  padding:10px;background:var(--paper-2);border-radius:12px;}
+.color-add-row input[type="text"]{flex:1;min-width:140px;padding:10px 12px;border-radius:10px;
+  border:1px solid var(--line);font-family:inherit;font-size:13px;outline:none;background:#fff;}
+.color-add-row input[type="text"]:focus{border-color:var(--ink);}
+.color-add-row input[type="color"]{width:44px;height:40px;padding:2px;border-radius:10px;
+  border:1px solid var(--line);background:#fff;cursor:pointer;}
+.color-chips{display:flex;flex-wrap:wrap;gap:8px;min-height:10px;}
+.color-chip{display:inline-flex;align-items:center;gap:8px;padding:6px 10px 6px 6px;
+  background:#fff;border:1px solid var(--line);border-radius:999px;font-size:12px;}
+.color-chip .swatch{width:20px;height:20px;border-radius:50%;border:1px solid rgba(10,10,10,.2);flex-shrink:0;}
+.color-chip .rm{border:none;background:transparent;color:var(--muted);cursor:pointer;
+  font-size:14px;padding:0 4px;line-height:1;}
+.color-chip .rm:hover{color:var(--red);}
+
 /* TOGGLE */
 .toggle-field{display:flex;align-items:center;gap:12px;margin-bottom:14px;
   padding:14px;background:#fff;border-radius:12px;border:1px solid var(--line);}
@@ -450,6 +467,18 @@ html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
         <span class="form-help" id="imgHelp"></span>
       </label>
 
+      <label class="form-field">Colores disponibles
+        <div class="colors-editor">
+          <div class="color-add-row">
+            <input type="text" id="fColorName" placeholder="Nombre del color (Ej: Rosa)" maxlength="30">
+            <input type="color" id="fColorHex" value="#F2A7C3" title="Elegí el color">
+            <button type="button" class="btn btn-outline btn-sm" onclick="addColor()">+ Agregar</button>
+          </div>
+          <div class="color-chips" id="colorChips"></div>
+        </div>
+        <span class="form-help">Elegí un color con el cuadradito, ponele nombre y tocá "+ Agregar". La clienta va a poder elegirlo al comprar. Dejá vacío si el producto no tiene variantes de color.</span>
+      </label>
+
       <div class="toggle-field">
         <label for="fFeatured">
           ✨ Mostrar en Novedades (slider)
@@ -619,6 +648,7 @@ function renderGrid(){
           ${p.old ? `<span class="old">${fmt(p.old)}</span>` : ''}${fmt(p.price)}
         </div>
         ${p.sizes && p.sizes.length ? `<div class="admin-card-sizes">Talles: ${esc(p.sizes.join(', '))}</div>` : ''}
+        ${p.colors && p.colors.length ? `<div class="admin-card-sizes" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">Colores: ${p.colors.map(c => `<span title="${esc(c.name)}" style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${esc(c.hex)};border:1px solid rgba(10,10,10,.2);"></span>`).join('')}</div>` : ''}
         <div class="admin-card-stock">Stock: ${p.stock || 0}</div>
         <div class="admin-card-actions">
           <button class="btn btn-outline btn-sm" onclick="openProductModal(${p.dbId})">✏️ Editar</button>
@@ -631,6 +661,7 @@ function renderGrid(){
 
 // ============ PRODUCT MODAL + UPLOAD ============
 let _modalImages = [];
+let _modalColors = [];
 
 function openProductModal(id){
   document.getElementById('productModalTitle').textContent = id ? 'Editar producto' : 'Agregar producto';
@@ -640,6 +671,7 @@ function openProductModal(id){
   document.getElementById('fActive').checked = true;
   document.getElementById('fFeatured').checked = false;
   _modalImages = [];
+  _modalColors = [];
 
   if(id){
     const p = _products.find(x => x.dbId === id);
@@ -655,11 +687,57 @@ function openProductModal(id){
     document.getElementById('fActive').checked = !!p.active;
     document.getElementById('fFeatured').checked = !!p.featured;
     _modalImages = (p.images || []).slice();
+    _modalColors = Array.isArray(p.colors) ? p.colors.slice() : [];
   }
   renderImgGrid();
+  renderColorChips();
   document.getElementById('productModalOverlay').classList.add('open');
   document.body.style.overflow='hidden';
 }
+
+function renderColorChips(){
+  const el = document.getElementById('colorChips');
+  if(!el) return;
+  if(!_modalColors.length){
+    el.innerHTML = '<span style="font-size:12px;color:var(--muted);">Sin colores cargados</span>';
+    return;
+  }
+  el.innerHTML = _modalColors.map((c, i) => `
+    <span class="color-chip">
+      <span class="swatch" style="background:${esc(c.hex)}"></span>
+      <span>${esc(c.name)}</span>
+      <button type="button" class="rm" onclick="removeColor(${i})" aria-label="Quitar">✕</button>
+    </span>
+  `).join('');
+}
+
+function addColor(){
+  const nameEl = document.getElementById('fColorName');
+  const hexEl = document.getElementById('fColorHex');
+  const name = nameEl.value.trim();
+  const hex = (hexEl.value || '').toUpperCase();
+  if(!name){ toast('Ponele un nombre al color', true); nameEl.focus(); return; }
+  if(!/^#[0-9A-F]{6}$/.test(hex)){ toast('Color inválido', true); return; }
+  // Evita duplicados por nombre o hex
+  if(_modalColors.some(c => c.name.toLowerCase() === name.toLowerCase() || c.hex === hex)){
+    toast('Ese color ya está', true); return;
+  }
+  if(_modalColors.length >= 20){ toast('Máximo 20 colores', true); return; }
+  _modalColors.push({name, hex});
+  nameEl.value = '';
+  renderColorChips();
+  nameEl.focus();
+}
+
+function removeColor(i){ _modalColors.splice(i, 1); renderColorChips(); }
+
+// Enter en el input de nombre también agrega
+document.addEventListener('DOMContentLoaded', () => {
+  const n = document.getElementById('fColorName');
+  if(n){
+    n.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); addColor(); } });
+  }
+});
 function closeProductModal(){
   document.getElementById('productModalOverlay').classList.remove('open');
   document.body.style.overflow='';
@@ -720,6 +798,7 @@ async function saveProduct(e){
     old: oldVal ? Number(oldVal) : null,
     stock: Number(document.getElementById('fStock').value || 0),
     images: _modalImages,
+    colors: _modalColors,
     featured: document.getElementById('fFeatured').checked,
     active: document.getElementById('fActive').checked,
   };
@@ -804,7 +883,10 @@ function renderSales(){
   const orderStatusLabel = {new:'🆕 Nuevo', processing:'🛠 Preparando', shipped:'📦 Enviado', delivered:'🏠 Entregado', cancelled:'⊘ Cancelado'};
 
   body.innerHTML = filtered.map(s => {
-    const items = (s.items || []).map(i => `${i.qty}× ${esc(i.name)}${i.size ? ' (' + esc(i.size) + ')' : ''}`).join(', ');
+    const items = (s.items || []).map(i => {
+      const extras = [i.size ? 'T:'+i.size : '', i.color ? 'C:'+i.color : ''].filter(Boolean).join(' ');
+      return `${i.qty}× ${esc(i.name)}${extras ? ' (' + esc(extras) + ')' : ''}`;
+    }).join(', ');
     const c = s.customer || {};
     return `<tr>
       <td style="white-space:nowrap;font-size:12px;color:var(--muted);">${fmtDate(s.createdAt)}</td>
@@ -861,9 +943,10 @@ function openSaleModal(id){
   const s = _sales.find(x => x.id === id); if(!s) return;
   document.getElementById('saleModalTitle').textContent = 'Pedido ' + s.orderCode;
   const c = s.customer || {};
-  const items = (s.items || []).map(i => `
-    <div class="row"><span>${i.qty}× ${esc(i.name)}${i.size ? ' (' + esc(i.size) + ')' : ''}</span><span>${fmt(i.price * i.qty)}</span></div>
-  `).join('');
+  const items = (s.items || []).map(i => {
+    const extras = [i.size ? 'Talle '+i.size : '', i.color ? 'Color '+i.color : ''].filter(Boolean).join(' · ');
+    return `<div class="row"><span>${i.qty}× ${esc(i.name)}${extras ? ' <span style="color:var(--muted);font-size:12px;">('+esc(extras)+')</span>' : ''}</span><span>${fmt(i.price * i.qty)}</span></div>`;
+  }).join('');
   const waMsg = `Hola ${c.name || ''}! Te escribimos de Shine Aura por tu pedido ${s.orderCode}.`;
   const waUrl = `https://wa.me/${(c.phone || '').replace(/\D/g,'')}?text=${encodeURIComponent(waMsg)}`;
   document.getElementById('saleModalBody').innerHTML = `
