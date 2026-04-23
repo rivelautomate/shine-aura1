@@ -8,6 +8,7 @@
 <meta http-equiv="Expires" content="0">
 <title>Admin — SHINE AURA</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Cormorant+Garamond:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <style>
 :root{
   --ink:#0A0A0A;--paper:#F7F5F2;--paper-2:#EFEBE4;--cream:#E8DFD3;
@@ -113,6 +114,28 @@ html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
 .admin-card-stock{font-size:11px;color:var(--muted);margin-top:2px;}
 .admin-card-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
 .admin-card-actions .btn{flex:1;justify-content:center;min-width:0;}
+
+/* DRAG & DROP — reordenar productos */
+.reorder-hint{background:var(--pink-light);color:var(--ink);padding:11px 16px;
+  border-radius:12px;font-size:13px;margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+.reorder-hint .ico{font-size:18px;}
+.drag-handle{position:absolute;top:10px;left:10px;z-index:3;
+  width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.92);
+  display:grid;place-items:center;cursor:grab;color:var(--ink);
+  box-shadow:0 2px 8px rgba(0,0,0,.1);user-select:none;touch-action:none;
+  font-size:16px;line-height:1;}
+.drag-handle:active{cursor:grabbing;background:var(--pink-light);}
+.drag-handle svg{display:block;}
+.admin-card.sortable-ghost{opacity:.35;}
+.admin-card.sortable-chosen{box-shadow:0 12px 40px rgba(212,120,155,.35);}
+.admin-card.sortable-drag{transform:rotate(1.5deg);}
+.saving-pill{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--ink);color:#fff;padding:10px 20px;border-radius:999px;
+  font-size:13px;z-index:1000;display:none;align-items:center;gap:8px;
+  box-shadow:0 8px 30px rgba(0,0,0,.25);}
+.saving-pill.show{display:inline-flex;}
+.saving-pill.ok{background:var(--green);}
+.saving-pill.err{background:var(--red);}
 
 /* STATS */
 .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:28px;}
@@ -342,6 +365,10 @@ html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
         <div class="toolbar-right">
           <button class="btn btn-pink" onclick="openProductModal()">+ Agregar producto</button>
         </div>
+      </div>
+      <div class="reorder-hint" id="reorderHint" style="display:none;">
+        <span class="ico">↕️</span>
+        <span>Podés <strong>arrastrar los productos</strong> desde la manija ≡ de arriba a la izquierda para cambiar el orden. Los productos de más arriba aparecen primero en la tienda.</span>
       </div>
       <div class="admin-grid" id="adminGrid"></div>
       <div class="empty-state" id="catalogoEmpty" style="display:none;">No hay productos. Agregá el primero.</div>
@@ -629,15 +656,20 @@ async function refreshProducts(){
 function renderGrid(){
   const grid = document.getElementById('adminGrid');
   const empty = document.getElementById('catalogoEmpty');
+  const hint = document.getElementById('reorderHint');
   document.getElementById('productCount').textContent = '(' + _products.length + ')';
-  if(!_products.length){ grid.innerHTML=''; empty.style.display=''; return; }
+  if(!_products.length){ grid.innerHTML=''; empty.style.display=''; if(hint) hint.style.display='none'; return; }
   empty.style.display='none';
+  if(hint) hint.style.display = _products.length > 1 ? '' : 'none';
   grid.innerHTML = _products.map(p => {
     const img = (p.images && p.images.filter(Boolean)[0]) || '';
-    return `<div class="admin-card ${p.active ? '' : 'inactive'}">
+    return `<div class="admin-card ${p.active ? '' : 'inactive'}" data-id="${p.dbId}">
       <div class="admin-card-img">
+        <button type="button" class="drag-handle" aria-label="Arrastrar para reordenar" title="Arrastrá para mover">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>
+        </button>
         ${img ? `<img src="${esc(img)}" alt="${esc(p.name)}">` : `<div class="no-img-lbl">Sin foto</div>`}
-        ${p.tag ? `<div class="admin-card-tag">${esc(p.tag)}</div>` : ''}
+        ${p.tag ? `<div class="admin-card-tag" style="left:54px;">${esc(p.tag)}</div>` : ''}
         ${p.featured ? `<div class="admin-card-featured">✨ Novedades</div>` : ''}
         ${!p.active ? `<div class="admin-card-inactive">Oculto</div>` : ''}
       </div>
@@ -657,6 +689,73 @@ function renderGrid(){
       </div>
     </div>`;
   }).join('');
+
+  initSortable();
+}
+
+// ============ REORDER (drag & drop) ============
+let _sortableInstance = null;
+
+function initSortable(){
+  const grid = document.getElementById('adminGrid');
+  if(!grid || typeof Sortable === 'undefined') return;
+  if(_sortableInstance){ _sortableInstance.destroy(); _sortableInstance = null; }
+  _sortableInstance = new Sortable(grid, {
+    animation: 180,
+    handle: '.drag-handle',
+    ghostClass: 'sortable-ghost',
+    chosenClass: 'sortable-chosen',
+    dragClass: 'sortable-drag',
+    forceFallback: true, // Mejor soporte touch + consistencia iOS/Android
+    fallbackOnBody: true,
+    delay: 80,
+    delayOnTouchOnly: true,
+    touchStartThreshold: 5,
+    onEnd: saveReorder,
+  });
+}
+
+async function saveReorder(){
+  const grid = document.getElementById('adminGrid');
+  const ids = Array.from(grid.querySelectorAll('.admin-card'))
+    .map(el => Number(el.dataset.id))
+    .filter(n => !isNaN(n) && n > 0);
+  if(!ids.length) return;
+
+  // Reordenar el array local para reflejar el nuevo orden sin necesidad de refrescar del server.
+  const byId = Object.fromEntries(_products.map(p => [p.dbId, p]));
+  _products = ids.map(id => byId[id]).filter(Boolean);
+
+  const pill = showSavingPill('Guardando orden...', '');
+  try{
+    await api('/api/products.php?reorder=1', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ids})
+    });
+    showSavingPill('Orden guardado ✨', 'ok', 1800);
+  }catch(e){
+    showSavingPill('Error al guardar: ' + e.message, 'err', 3500);
+  }
+}
+
+let _pillTimer = null;
+function showSavingPill(msg, cls, autoHide){
+  let pill = document.getElementById('savingPill');
+  if(!pill){
+    pill = document.createElement('div');
+    pill.id = 'savingPill';
+    pill.className = 'saving-pill';
+    document.body.appendChild(pill);
+  }
+  pill.textContent = msg;
+  pill.classList.remove('ok','err');
+  if(cls) pill.classList.add(cls);
+  pill.classList.add('show');
+  clearTimeout(_pillTimer);
+  if(autoHide){
+    _pillTimer = setTimeout(() => pill.classList.remove('show'), autoHide);
+  }
+  return pill;
 }
 
 // ============ PRODUCT MODAL + UPLOAD ============
@@ -749,19 +848,25 @@ function renderImgGrid(){
   grid.innerHTML = _modalImages.map((url, i) => `
     <div class="img-thumb">
       <img src="${esc(url)}" alt="">
-      <button type="button" class="rm" title="Quitar" onclick="removeImg(${i})">✕</button>
+      <button type="button" class="rm" title="Quitar" onclick="removeImg(event, ${i})">✕</button>
     </div>
   `).join('');
   document.getElementById('imgHelp').textContent =
     _modalImages.length ? (_modalImages.length + ' foto(s) cargada(s)') : 'Sin fotos todavía';
 }
-function removeImg(i){ _modalImages.splice(i, 1); renderImgGrid(); }
+// stopPropagation: el botón está dentro del <label> del uploader, sin esto el click burbuja
+// y abre el file picker justo después de quitar la foto.
+function removeImg(e, i){ if(e){ e.preventDefault(); e.stopPropagation(); } _modalImages.splice(i, 1); renderImgGrid(); }
 
 async function handleFiles(files){
-  if(!files || !files.length) return;
+  // Snapshot a Array: si viene de e.target.files (FileList viva), al limpiar el input
+  // el FileList se vacía y perdíamos archivos a mitad de subida.
+  const list = Array.from(files || []);
+  if(!list.length) return;
   const help = document.getElementById('imgHelp');
-  for(const file of files){
-    help.textContent = 'Subiendo ' + file.name + '...';
+  for(let i = 0; i < list.length; i++){
+    const file = list[i];
+    help.textContent = 'Subiendo ' + file.name + ' (' + (i+1) + '/' + list.length + ')...';
     try{
       const fd = new FormData();
       fd.append('image', file);
@@ -778,10 +883,21 @@ async function handleFiles(files){
 
 const uploader = document.getElementById('uploader');
 const fFile = document.getElementById('fFile');
-uploader.addEventListener('click', () => fFile.click());
-fFile.addEventListener('change', e => { handleFiles(e.target.files); fFile.value = ''; });
-['dragenter','dragover'].forEach(ev => uploader.addEventListener(ev, e => { e.preventDefault(); uploader.classList.add('drag'); }));
-['dragleave','drop'].forEach(ev => uploader.addEventListener(ev, e => { e.preventDefault(); uploader.classList.remove('drag'); }));
+// NO agregamos listener de click al uploader: el <input> vive dentro de un <label>,
+// así que el click-to-open lo maneja el browser nativamente. Duplicarlo hacía que
+// el file picker se disparara dos veces y a veces perdía la selección (había que elegir la foto de nuevo).
+fFile.addEventListener('change', e => {
+  // Snapshot inmediato ANTES de limpiar el value: e.target.files es una FileList viva.
+  const picked = Array.from(e.target.files || []);
+  fFile.value = '';
+  handleFiles(picked);
+});
+// Prevenir default en drag/drop para que el browser no abra el archivo en una pestaña nueva
+['dragenter','dragover','dragleave','drop'].forEach(ev => {
+  uploader.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); });
+});
+['dragenter','dragover'].forEach(ev => uploader.addEventListener(ev, () => uploader.classList.add('drag')));
+['dragleave','drop'].forEach(ev => uploader.addEventListener(ev, () => uploader.classList.remove('drag')));
 uploader.addEventListener('drop', e => { handleFiles(e.dataTransfer.files); });
 
 async function saveProduct(e){
