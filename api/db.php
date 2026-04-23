@@ -40,7 +40,25 @@ function sa_db(): PDO {
         sa_seed_initial_data($pdo);
     }
 
+    // Migraciones suaves — corren en cada arranque pero solo hacen trabajo si falta la columna.
+    sa_run_migrations($pdo);
+
     return $pdo;
+}
+
+function sa_column_exists(PDO $pdo, string $table, string $column): bool {
+    $stmt = $pdo->query("PRAGMA table_info(" . $table . ")");
+    foreach ($stmt->fetchAll() as $col) {
+        if (strcasecmp($col['name'], $column) === 0) return true;
+    }
+    return false;
+}
+
+function sa_run_migrations(PDO $pdo): void {
+    // Agrega la columna `colors` a products si todavía no existe (BDs viejas).
+    if (!sa_column_exists($pdo, 'products', 'colors')) {
+        $pdo->exec("ALTER TABLE products ADD COLUMN colors TEXT NOT NULL DEFAULT '[]'");
+    }
 }
 
 function sa_table_exists(PDO $pdo, string $name): bool {
@@ -139,6 +157,7 @@ function sa_product_to_api(array $row): array {
         'desc'         => $row['description'],
         'longDesc'     => $row['long_description'],
         'sizes'        => json_decode($row['sizes'] ?: '[]', true) ?: [],
+        'colors'       => json_decode(($row['colors'] ?? '[]') ?: '[]', true) ?: [],
         'price'        => (int)$row['price'],
         'old'          => $row['old_price'] !== null ? (int)$row['old_price'] : null,
         'images'       => json_decode($row['images'] ?: '[]', true) ?: [],
@@ -177,4 +196,5 @@ function sa_sale_to_api(array $row): array {
         'updatedAt'     => $row['updated_at'],
     ];
 }
+
 
