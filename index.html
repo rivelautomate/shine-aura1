@@ -199,7 +199,10 @@ button{cursor:pointer;font-family:inherit;}
   -webkit-mask-image:linear-gradient(to right,transparent 0,#000 6%,#000 94%,transparent 100%);
   mask-image:linear-gradient(to right,transparent 0,#000 6%,#000 94%,transparent 100%);}
 .slider-track{display:flex;gap:18px;padding:0 12px;width:max-content;
-  animation:sliderMarquee 45s linear infinite;}
+  animation:sliderMarquee 45s linear infinite;
+  /* Safari iOS: forzar capa de GPU estabiliza las imágenes dentro de la animación (saca el titileo). */
+  will-change:transform;transform:translateZ(0);-webkit-backface-visibility:hidden;backface-visibility:hidden;}
+.slider-track .card-img img{-webkit-backface-visibility:hidden;backface-visibility:hidden;transform:translateZ(0);}
 .slider-scroll:hover .slider-track{animation-play-state:paused;}
 @keyframes sliderMarquee{
   from{transform:translateX(0);}
@@ -570,11 +573,12 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
   .card-price{font-size:14.5px;}
   .card-cat{font-size:9.5px;}
   .card-badge{font-size:8.5px;padding:3px 8px;}
-  /* Slider de Novedades en mobile: scroll manual (swipe) en vez de marquee */
+  /* Slider de Novedades en mobile: scroll manual (swipe) en vez de marquee.
+     mask-image OFF en mobile: Safari iOS bugea con snap+mask combinados (titileo). */
   .slider-scroll{
     overflow-x:auto;scroll-snap-type:x mandatory;
     -webkit-overflow-scrolling:touch;scrollbar-width:none;
-    -webkit-mask-image:none;mask-image:none;
+    -webkit-mask-image:none !important;mask-image:none !important;
     padding:8px 0 16px;
   }
   .slider-scroll::-webkit-scrollbar{display:none;}
@@ -1222,12 +1226,15 @@ async function submitOrder(method){
 }
 
 // ===== RENDER =====
-function productCardHTML(p){
+// eager=true -> sin loading="lazy". Safari iOS descarta/recarga imágenes dentro de animaciones y scrolls con snap,
+// provocando un titileo visible en el slider de Novedades. En el grid grande mantenemos lazy para performance.
+function productCardHTML(p, eager){
   const img=p.images&&p.images.length?p.images.filter(Boolean)[0]:'';
   const imgCount = (p.images || []).filter(Boolean).length;
+  const loadAttr = eager ? '' : ' loading="lazy"';
   return`<div class="product-card" onclick="openProductDetail('${esc(p.id)}')" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openProductDetail('${esc(p.id)}')">
     <div class="card-img">
-      ${img?`<img src="${esc(img)}" alt="${esc(p.name)}" loading="lazy">`:
+      ${img?`<img src="${esc(img)}" alt="${esc(p.name)}"${loadAttr}>`:
         `<div class="no-img-box">
           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#D4789B" stroke-width="1.2" opacity=".3"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
           <span class="no-img-txt">Próximamente</span>
@@ -1414,7 +1421,7 @@ function renderSlider(force){
 
   // Mobile: scroll manual (swipe con snap), sin duplicar.
   if(mode === 'mobile'){
-    track.innerHTML = prods.map(productCardHTML).join('');
+    track.innerHTML = prods.map(p => productCardHTML(p, true)).join('');
     track.style.animationDuration = '';
     return;
   }
@@ -1424,7 +1431,7 @@ function renderSlider(force){
   if(prods.length<=3)copies=4;
   else if(prods.length<=5)copies=3;
   let html='';
-  for(let i=0;i<copies;i++)html+=prods.map(productCardHTML).join('');
+  for(let i=0;i<copies;i++)html+=prods.map(p => productCardHTML(p, true)).join('');
   track.innerHTML=html;
   const baseDur=Math.max(22, prods.length*8);
   track.style.animationDuration=baseDur+'s';
