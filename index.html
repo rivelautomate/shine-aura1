@@ -402,7 +402,7 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
   display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto;}
 .pd-overlay.open{opacity:1;pointer-events:auto;}
 .pd-modal{background:var(--white);border-radius:24px;max-width:1040px;width:100%;
-  max-height:94vh;overflow-y:auto;
+  max-height:94vh;overflow-y:auto;overscroll-behavior:contain;
   display:grid;grid-template-columns:1.1fr 1fr;gap:0;
   transform:scale(.96) translateY(10px);transition:transform .32s cubic-bezier(.2,.7,.2,1),opacity .28s;opacity:0;
   position:relative;box-shadow:0 30px 80px rgba(45,27,36,.25);}
@@ -424,7 +424,9 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
 .pd-main{flex:1;aspect-ratio:3/4;position:relative;overflow:hidden;
   display:grid;place-items:center;background:var(--pink-pale);}
 .pd-main img{width:100%;height:100%;object-fit:cover;display:block;}
-.pd-no-img{font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--muted);opacity:.6;}
+.pd-no-img{font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--muted);
+  display:flex;flex-direction:column;align-items:center;gap:8px;opacity:.65;}
+.pd-no-img span{font-size:13px;}
 .pd-nav-arrow{position:absolute;top:50%;transform:translateY(-50%);
   width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;
   background:rgba(255,255,255,.92);color:var(--ink);font-size:16px;
@@ -472,6 +474,12 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
   .pd-desc{font-size:16px;}
   .pd-longdesc{font-size:13.5px;line-height:1.55;}
   .pd-main{aspect-ratio:auto;height:38vh;min-height:200px;max-height:360px;}
+  /* Cuando NO hay fotos cargadas, dejamos solo una barra chica arriba con aviso */
+  .pd-no-images .pd-main{height:auto;min-height:0;max-height:none;
+    aspect-ratio:auto;padding:18px 16px;background:var(--pink-pale);}
+  .pd-no-images .pd-no-img{flex-direction:row;gap:10px;}
+  .pd-no-images .pd-no-img svg{width:22px;height:22px;}
+  .pd-no-images .pd-no-img span{font-size:12px;}
   .pd-nav-arrow{width:44px;height:44px;}
   .pd-close{top:10px;right:10px;width:38px;height:38px;font-size:16px;}
   .pd-back{top:10px;left:10px;padding:8px 12px;font-size:11px;}
@@ -1227,10 +1235,16 @@ function renderProductDetail(){
   // Imagen principal + flechas si hay más de una
   const navPrev = images.length > 1 ? `<button class="pd-nav-arrow pd-nav-prev" onclick="pdPrevImage(event)" aria-label="Foto anterior"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 6l-6 6 6 6"/></svg></button>` : '';
   const navNext = images.length > 1 ? `<button class="pd-nav-arrow pd-nav-next" onclick="pdNextImage(event)" aria-label="Foto siguiente"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 6l6 6-6 6"/></svg></button>` : '';
+  const modal = document.querySelector('.pd-modal');
   if(images.length === 0){
-    main.innerHTML = `<div class="pd-no-img">Sin foto cargada</div>`;
+    main.innerHTML = `<div class="pd-no-img">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" opacity=".5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      <span>Foto próximamente</span>
+    </div>`;
+    modal.classList.add('pd-no-images');
   } else {
     main.innerHTML = `<img src="${esc(images[_pdImgIdx])}" alt="${esc(p.name)}">${navPrev}${navNext}`;
+    modal.classList.remove('pd-no-images');
   }
 
   // Thumbnails (solo si hay más de una)
@@ -1446,9 +1460,6 @@ loadProducts().then(() => {
   renderSlider();
   renderProducts();
 });
-</script>
-</body>
-</html>
 </script>
 </body>
 </html>
