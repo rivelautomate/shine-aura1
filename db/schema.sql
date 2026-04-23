@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS products (
   description TEXT,
   long_description TEXT,
   sizes TEXT NOT NULL DEFAULT '[]',
+  colors TEXT NOT NULL DEFAULT '[]',
   price INTEGER NOT NULL,
   old_price INTEGER,
   images TEXT NOT NULL DEFAULT '[]',
