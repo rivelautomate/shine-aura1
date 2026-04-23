@@ -1430,11 +1430,16 @@ function renderSlider(force){
   track.style.animationDuration=baseDur+'s';
 }
 
-// Re-render del slider si el usuario rota el celu (cambia entre mobile y desktop).
+// Re-render del slider SOLO si cruza el breakpoint mobile↔desktop.
+// En mobile, el scroll hace aparecer/ocultar la barra del navegador, lo cual dispara
+// un resize y causaba "titileo" al reemplazar el innerHTML mientras las imágenes lazy recargaban.
 let _sliderResizeTimer;
 window.addEventListener('resize', () => {
   clearTimeout(_sliderResizeTimer);
-  _sliderResizeTimer = setTimeout(() => renderSlider(true), 200);
+  _sliderResizeTimer = setTimeout(() => {
+    const newMode = window.innerWidth <= 768 ? 'mobile' : 'desktop';
+    if(newMode !== _sliderLastMode) renderSlider(true);
+  }, 200);
 });
 
 // ===== PRODUCTS =====
