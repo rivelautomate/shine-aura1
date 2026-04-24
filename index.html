@@ -195,13 +195,17 @@ button{cursor:pointer;font-family:inherit;}
 .featured-header{padding:0 24px;text-align:center;margin-bottom:36px;}
 
 .slider-wrap{position:relative;}
-.slider-scroll{overflow:hidden;padding:8px 0 20px;
-  -webkit-mask-image:linear-gradient(to right,transparent 0,#000 6%,#000 94%,transparent 100%);
-  mask-image:linear-gradient(to right,transparent 0,#000 6%,#000 94%,transparent 100%);}
+/* Fades laterales con pseudo-elementos en vez de mask-image.
+   mask-image + animation + page-scroll rompe el repintado en Chrome/Firefox
+   (la sección se pintaba en blanco al deslizar). */
+.slider-wrap::before,.slider-wrap::after{content:'';position:absolute;top:0;bottom:0;
+  width:60px;z-index:2;pointer-events:none;}
+.slider-wrap::before{left:0;background:linear-gradient(to right,var(--cream),transparent);}
+.slider-wrap::after{right:0;background:linear-gradient(to left,var(--cream),transparent);}
+.slider-scroll{overflow:hidden;padding:8px 0 20px;}
 .slider-track{display:flex;gap:18px;padding:0 12px;width:max-content;
   animation:sliderMarquee 45s linear infinite;
-  /* Safari iOS: forzar capa de GPU estabiliza las imágenes dentro de la animación (saca el titileo). */
-  will-change:transform;transform:translateZ(0);-webkit-backface-visibility:hidden;backface-visibility:hidden;}
+  transform:translateZ(0);-webkit-backface-visibility:hidden;backface-visibility:hidden;}
 .slider-track .card-img img{-webkit-backface-visibility:hidden;backface-visibility:hidden;transform:translateZ(0);}
 .slider-scroll:hover .slider-track{animation-play-state:paused;}
 @keyframes sliderMarquee{
@@ -217,9 +221,9 @@ button{cursor:pointer;font-family:inherit;}
 .product-card:focus-visible{outline:2px solid var(--pink-deep);outline-offset:3px;}
 .product-card:hover{transform:translateY(-7px);
   box-shadow:0 18px 50px rgba(212,120,155,0.14);}
-.card-img{aspect-ratio:3/4;background:var(--pink-pale);
+.card-img{aspect-ratio:3/4;background:var(--white);
   position:relative;overflow:hidden;}
-.card-img img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease;}
+.card-img img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease;display:block;}
 .product-card:hover .card-img img{transform:scale(1.04);}
 .no-img-box{width:100%;height:100%;display:flex;align-items:center;justify-content:center;
   flex-direction:column;gap:10px;}
@@ -423,9 +427,9 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
   box-shadow:0 4px 14px rgba(0,0,0,.08);transition:background .2s;}
 .pd-back:hover{background:var(--ink);color:var(--cream);}
 
-.pd-gallery-col{background:var(--pink-pale);position:relative;display:flex;flex-direction:column;}
-/* Sin aspect-ratio fijo: la caja se adapta a cada foto (portrait, cuadrada, panorámica) sin recortar ni dejar franjas rosas exageradas. */
-.pd-main{flex:1;position:relative;overflow:hidden;background:var(--pink-pale);
+.pd-gallery-col{background:var(--white);position:relative;display:flex;flex-direction:column;}
+/* Sin aspect-ratio fijo: la caja se adapta a cada foto (portrait, cuadrada, panorámica) sin recortar. Fondo blanco para que fotos con transparencia se vean limpias. */
+.pd-main{flex:1;position:relative;overflow:hidden;background:var(--white);
   display:grid;place-items:center;min-height:420px;max-height:78vh;}
 .pd-main img{display:block;max-width:100%;max-height:78vh;width:auto;height:auto;margin:0 auto;}
 .pd-no-img{font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--muted);
@@ -441,7 +445,7 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
 .pd-nav-next{right:14px;}
 .pd-thumbs{display:flex;gap:8px;padding:12px;overflow-x:auto;background:rgba(255,255,255,.7);}
 .pd-thumb{flex:0 0 64px;height:64px;border-radius:10px;overflow:hidden;
-  border:2px solid transparent;background:var(--pink-pale);cursor:pointer;padding:0;}
+  border:2px solid transparent;background:var(--cream-2);cursor:pointer;padding:0;}
 .pd-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
 .pd-thumb.active{border-color:var(--pink-deep);}
 
@@ -567,8 +571,9 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
   .hero-logo-img{width:clamp(220px,70vw,380px);}
   .hero-tagline{margin:0 0 22px;font-size:15px;}
   .scroll-hint{display:none;}
-  /* Product card en mobile: card más compacta (cuadrada en vez de 3:4) */
-  .card-img{aspect-ratio:1/1;}
+  /* Product card en mobile: mantenemos 3:4 para que la foto no se corte
+     y sea consistente con el slider de Novedades y el desktop. */
+  .card-img{aspect-ratio:3/4;}
   .no-img-box svg{width:28px;height:28px;}
   .no-img-txt{font-size:11px;}
   .card-body{padding:12px 12px 14px;}
