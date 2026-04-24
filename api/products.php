@@ -88,6 +88,28 @@ if ($method === 'GET') {
     sa_json(['products' => $out]);
 }
 
+if ($method === 'POST' && !empty($_GET['reorder'])) {
+    sa_require_auth();
+    $in = sa_read_json_body();
+    $ids = isset($in['ids']) && is_array($in['ids']) ? $in['ids'] : null;
+    if (!$ids) sa_fail('Falta la lista de ids', 400);
+
+    $pdo->beginTransaction();
+    try {
+        $stmt = $pdo->prepare("UPDATE products SET sort_order = :ord, updated_at = datetime('now') WHERE id = :id");
+        foreach ($ids as $i => $rawId) {
+            $pid = (int)$rawId;
+            if ($pid <= 0) continue;
+            $stmt->execute([':ord' => $i, ':id' => $pid]);
+        }
+        $pdo->commit();
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        sa_fail('No se pudo reordenar: ' . $e->getMessage(), 500);
+    }
+    sa_json(['ok' => true, 'count' => count($ids)]);
+}
+
 if ($method === 'POST') {
     sa_require_auth();
     $in = sa_validate_product_payload(sa_read_json_body());
