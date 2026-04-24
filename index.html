@@ -428,10 +428,12 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
 .pd-back:hover{background:var(--ink);color:var(--cream);}
 
 .pd-gallery-col{background:var(--white);position:relative;display:flex;flex-direction:column;}
-/* Sin aspect-ratio fijo: la caja se adapta a cada foto (portrait, cuadrada, panorámica) sin recortar. Fondo blanco para que fotos con transparencia se vean limpias. */
-.pd-main{flex:1;position:relative;overflow:hidden;background:var(--white);
-  display:grid;place-items:center;min-height:420px;max-height:78vh;}
-.pd-main img{display:block;max-width:100%;max-height:78vh;width:auto;height:auto;margin:0 auto;}
+/* Aspect-ratio fijo 3:4 — así todas las fotos se ven iguales (formato retrato standard)
+   sin importar que la clienta las suba en distintos tamaños. object-fit:cover recorta
+   lo mínimo para llenar el recuadro sin dejar franjas blancas al costado. */
+.pd-main{position:relative;overflow:hidden;background:var(--white);
+  aspect-ratio:3/4;width:100%;}
+.pd-main img{display:block;width:100%;height:100%;object-fit:cover;}
 .pd-no-img{font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--muted);
   display:flex;flex-direction:column;align-items:center;gap:8px;opacity:.65;}
 .pd-no-img span{font-size:13px;}
@@ -496,10 +498,10 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
   .pd-price{font-size:21px;}
   .pd-desc{font-size:16px;}
   .pd-longdesc{font-size:13.5px;line-height:1.55;}
-  /* Mobile: la caja se adapta al tamaño natural de cada foto, sin recortar. */
-  .pd-main{aspect-ratio:auto;height:auto;min-height:260px;max-height:72vh;width:100%;
-    display:grid;place-items:center;}
-  .pd-main img{display:block;max-width:100%;max-height:72vh;width:auto;height:auto;}
+  /* Mobile: mantenemos el mismo ratio 3:4 para consistencia. object-fit:cover recorta
+     lo mínimo para que todas las fotos se vean iguales, sin franjas blancas. */
+  .pd-main{aspect-ratio:3/4;width:100%;height:auto;}
+  .pd-main img{display:block;width:100%;height:100%;object-fit:cover;}
   /* Cuando NO hay fotos cargadas, dejamos solo una barra chica arriba con aviso */
   .pd-no-images .pd-main{height:auto;min-height:0;max-height:none;
     aspect-ratio:auto;padding:18px 16px;background:var(--pink-pale);}
@@ -518,8 +520,7 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
   .pd-add-btn{padding:15px;font-size:13px;}
 }
 @media(max-width:420px){
-  .pd-main{min-height:240px;max-height:68vh;}
-  .pd-main img{max-height:68vh;}
+  .pd-main{aspect-ratio:3/4;}
   .pd-info{padding:20px 14px 24px;gap:10px;}
   .pd-title{font-size:22px;}
   .pd-price{font-size:20px;}
