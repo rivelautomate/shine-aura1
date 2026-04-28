@@ -32,6 +32,25 @@ function sa_unique_slug(PDO $pdo, string $base, ?int $ignoreId = null): string {
     }
 }
 
+// Normaliza el stock por color: deja solo claves que matcheen alguno de los colores
+// definidos en $colors (lista ya saneada) y valores enteros >= 0.
+function sa_sanitize_stock_by_color($raw, array $colors): array {
+    if (!is_array($raw)) return [];
+    $valid = [];
+    foreach ($colors as $c) {
+        if (isset($c['name'])) $valid[$c['name']] = true;
+    }
+    $out = [];
+    foreach ($raw as $k => $v) {
+        $name = trim((string)$k);
+        if ($name === '' || !isset($valid[$name])) continue;
+        $n = (int)$v;
+        if ($n < 0) $n = 0;
+        $out[$name] = $n;
+    }
+    return $out;
+}
+
 // Normaliza la lista de colores: cada item queda como {name: string, hex: '#RRGGBB'}.
 function sa_sanitize_colors($raw): array {
     if (!is_array($raw)) return [];
@@ -114,10 +133,12 @@ if ($method === 'POST') {
     sa_require_auth();
     $in = sa_validate_product_payload(sa_read_json_body());
     $slug = sa_unique_slug($pdo, sa_slugify($in['slug'] ?? $in['name']));
+    $colorsClean = sa_sanitize_colors($in['colors'] ?? []);
+    $stockByColor = sa_sanitize_stock_by_color($in['stockByColor'] ?? [], $colorsClean);
 
     $stmt = $pdo->prepare("
-        INSERT INTO products (slug, name, cat, tag, featured, description, long_description, sizes, colors, price, old_price, images, installments, stock, active, sort_order)
-        VALUES (:slug, :name, :cat, :tag, :featured, :desc, :long, :sizes, :colors, :price, :old, :images, :inst, :stock, :active, :ord)
+        INSERT INTO products (slug, name, cat, tag, featured, description, long_description, sizes, colors, price, old_price, images, installments, stock, stock_by_color, active, sort_order)
+        VALUES (:slug, :name, :cat, :tag, :featured, :desc, :long, :sizes, :colors, :price, :old, :images, :inst, :stock, :sbc, :active, :ord)
     ");
     $stmt->execute([
         ':slug'     => $slug,
@@ -128,12 +149,13 @@ if ($method === 'POST') {
         ':desc'     => (string)($in['desc'] ?? ''),
         ':long'     => (string)($in['longDesc'] ?? ''),
         ':sizes'    => json_encode(is_array($in['sizes'] ?? null) ? $in['sizes'] : []),
-        ':colors'   => json_encode(sa_sanitize_colors($in['colors'] ?? [])),
+        ':colors'   => json_encode($colorsClean),
         ':price'    => (int)$in['price'],
         ':old'      => isset($in['old']) && $in['old'] !== '' && $in['old'] !== null ? (int)$in['old'] : null,
         ':images'   => json_encode(is_array($in['images'] ?? null) ? $in['images'] : []),
         ':inst'     => (string)($in['installments'] ?? ''),
         ':stock'    => (int)($in['stock'] ?? 0),
+        ':sbc'      => json_encode($stockByColor, JSON_FORCE_OBJECT),
         ':active'   => isset($in['active']) ? ((int)!!$in['active']) : 1,
         ':ord'      => (int)($in['sortOrder'] ?? 0),
     ]);
@@ -160,6 +182,16 @@ if ($method === 'PUT') {
         $slug = sa_unique_slug($pdo, sa_slugify($in['name']), $id);
     }
 
+    // Si vienen colores en el payload, usamos los nuevos para validar el stockByColor;
+    // si no, mantenemos los que ya tenía el producto.
+    $effectiveColors = isset($in['colors']) ? sa_sanitize_colors($in['colors']) : (json_decode($row['colors'] ?: '[]', true) ?: []);
+    $stockByColorJson = $row['stock_by_color'] ?? '{}';
+    if (array_key_exists('stockByColor', $in) || isset($in['colors'])) {
+        // Si tocan colores o stockByColor, recalculamos. Si solo cambian colores, se filtran las claves obsoletas.
+        $rawSbc = array_key_exists('stockByColor', $in) ? $in['stockByColor'] : (json_decode($row['stock_by_color'] ?: '{}', true) ?: []);
+        $stockByColorJson = json_encode(sa_sanitize_stock_by_color($rawSbc, $effectiveColors), JSON_FORCE_OBJECT);
+    }
+
     $fields = [
         'slug'             => $slug,
         'name'             => $in['name']         ?? $row['name'],
@@ -169,12 +201,13 @@ if ($method === 'PUT') {
         'description'      => $in['desc']         ?? $row['description'],
         'long_description' => $in['longDesc']     ?? $row['long_description'],
         'sizes'            => isset($in['sizes']) ? json_encode(is_array($in['sizes']) ? $in['sizes'] : []) : $row['sizes'],
-        'colors'           => isset($in['colors']) ? json_encode(sa_sanitize_colors($in['colors'])) : ($row['colors'] ?? '[]'),
+        'colors'           => isset($in['colors']) ? json_encode($effectiveColors) : ($row['colors'] ?? '[]'),
         'price'            => isset($in['price']) ? (int)$in['price'] : (int)$row['price'],
         'old_price'        => array_key_exists('old', $in) ? ($in['old'] !== '' && $in['old'] !== null ? (int)$in['old'] : null) : $row['old_price'],
         'images'           => isset($in['images']) ? json_encode(is_array($in['images']) ? $in['images'] : []) : $row['images'],
         'installments'     => $in['installments'] ?? $row['installments'],
         'stock'            => isset($in['stock'])  ? (int)$in['stock']  : (int)$row['stock'],
+        'stock_by_color'   => $stockByColorJson,
         'active'           => array_key_exists('active', $in) ? ((int)!!$in['active']) : (int)$row['active'],
         'sort_order'       => isset($in['sortOrder']) ? (int)$in['sortOrder'] : (int)$row['sort_order'],
     ];
