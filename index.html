@@ -345,8 +345,29 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
 .ci-rm:hover{color:#e11d48;}
 .cart-ft{padding:16px 24px 24px;border-top:1px solid var(--line);flex-shrink:0;}
 .cart-subtotal-row{display:flex;justify-content:space-between;align-items:center;
-  font-size:15px;font-weight:600;margin-bottom:14px;}
+  font-size:14px;font-weight:500;color:var(--ink-soft);margin-bottom:6px;}
+.cart-shipping-row{display:flex;justify-content:space-between;align-items:center;
+  font-size:14px;font-weight:500;color:var(--ink-soft);margin-bottom:10px;}
+.cart-total-row{display:flex;justify-content:space-between;align-items:center;
+  font-size:16px;font-weight:700;padding-top:10px;border-top:1px solid var(--line);margin-bottom:14px;}
 .cart-total-val{font-size:19px;}
+.ship-calc{display:flex;flex-direction:column;gap:6px;margin:12px 0 14px;
+  padding:12px;background:var(--cream-2);border-radius:12px;}
+.ship-calc-label{font-size:10px;letter-spacing:.22em;text-transform:uppercase;
+  font-weight:600;color:var(--muted);}
+.ship-calc-row{display:flex;gap:8px;align-items:center;}
+.ship-calc-row input{flex:1;font-family:inherit;font-size:14px;
+  padding:10px 12px;border-radius:10px;border:1.5px solid rgba(212,120,155,0.25);
+  background:#fff;color:var(--ink);outline:none;transition:border-color .2s;}
+.ship-calc-row input:focus{border-color:var(--pink-deep);}
+.ship-calc-row button{padding:10px 14px;border:none;border-radius:10px;
+  background:var(--ink);color:#fff;font-family:inherit;font-size:12px;font-weight:600;
+  letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:background .2s;
+  white-space:nowrap;}
+.ship-calc-row button:hover{background:var(--pink-deep);}
+.ship-calc-result{font-size:12.5px;color:var(--ink-soft);line-height:1.5;}
+.ship-calc-result.unknown{color:#a83f4f;}
+.ship-calc-result strong{color:var(--ink);font-weight:600;}
 .cart-go{width:100%;padding:14px;background:var(--ink);color:var(--cream);
   border:none;border-radius:14px;font-size:13px;font-weight:600;
   letter-spacing:.1em;text-transform:uppercase;transition:background .2s,transform .15s;}
@@ -483,11 +504,20 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
 .pd-color-opt.active{border-color:var(--ink);transform:scale(1.08);}
 .pd-color-opt.active::before{content:'✓';position:absolute;inset:0;display:grid;place-items:center;
   color:#fff;font-size:14px;font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.4);z-index:2;}
+/* Color agotado: tachado y atenuado */
+.pd-color-opt.out{cursor:not-allowed;opacity:.45;}
+.pd-color-opt.out::after{filter:grayscale(.6);}
+.pd-color-opt.out::before{content:'';position:absolute;left:6%;right:6%;top:50%;
+  height:2px;background:var(--ink);transform:rotate(-30deg);transform-origin:center;
+  display:block;color:transparent;text-shadow:none;z-index:3;}
+.pd-stock-info{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+.pd-stock-info.out{color:#c1424d;font-weight:600;}
 
 .pd-add-btn{margin-top:auto;padding:16px;background:var(--ink);color:var(--cream);
   border:none;border-radius:14px;font-size:14px;font-weight:600;letter-spacing:.08em;
   text-transform:uppercase;cursor:pointer;transition:background .2s,transform .15s;}
 .pd-add-btn:hover{background:var(--pink-deep);transform:translateY(-1px);}
+.pd-add-btn:disabled{background:#aaa;cursor:not-allowed;transform:none;opacity:.65;}
 
 @media(max-width:820px){
   .pd-overlay{padding:0;align-items:stretch;overflow:hidden;}
@@ -871,6 +901,7 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
       <div class="pd-colors" id="pdColors" style="display:none;">
         <div class="pd-colors-label">Color: <strong id="pdColorPicked">Elegí uno</strong></div>
         <div class="pd-color-opts" id="pdColorOpts"></div>
+        <div class="pd-stock-info" id="pdStockInfo" style="display:none;"></div>
       </div>
 
       <div class="pd-perks">
@@ -897,7 +928,7 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
         </div>
       </div>
 
-      <button class="pd-add-btn" onclick="pdAddToCart()">Agregar al carrito ✨</button>
+      <button class="pd-add-btn" id="pdAddBtn" onclick="pdAddToCart()">Agregar al carrito ✨</button>
     </div>
   </div>
 </div>
@@ -911,8 +942,24 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
   </div>
   <div class="cart-items-list" id="cartItemsList"></div>
   <div class="cart-ft" id="cartFooter" style="display:none;">
+    <div class="ship-calc">
+      <span class="ship-calc-label">Calculá tu envío</span>
+      <div class="ship-calc-row">
+        <input type="text" id="cartCpInput" placeholder="Tu código postal (Ej: 1425)" inputmode="numeric" maxlength="4">
+        <button type="button" id="cartCalcShipBtn" onclick="calcShippingFromCart()">Calcular</button>
+      </div>
+      <div class="ship-calc-result" id="cartShipResult" style="display:none;"></div>
+    </div>
     <div class="cart-subtotal-row">
       <span>Subtotal</span>
+      <span id="cartSubtotalVal">$0</span>
+    </div>
+    <div class="cart-shipping-row" id="cartShippingRow" style="display:none;">
+      <span>Envío</span>
+      <span id="cartShippingVal">$0</span>
+    </div>
+    <div class="cart-total-row">
+      <span>Total</span>
       <span class="cart-total-val" id="cartTotal">$0</span>
     </div>
     <button class="cart-go" id="cartGoBtn">Continuar compra →</button>
@@ -929,6 +976,12 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
     <div class="order-mini">
       <div class="order-mini-ttl">Tu pedido</div>
       <div id="orderMiniItems"></div>
+      <div class="order-mini-item" id="orderMiniSubtotal" style="border-top:1px solid var(--line);padding-top:8px;margin-top:6px;">
+        <span>Subtotal</span><span id="orderMiniSubtotalVal">$0</span>
+      </div>
+      <div class="order-mini-item" id="orderMiniShipping" style="display:none;">
+        <span id="orderMiniShippingLbl">Envío</span><span id="orderMiniShippingVal">$0</span>
+      </div>
       <div class="order-mini-total">
         <span>Total</span>
         <span id="orderMiniTotal">$0</span>
@@ -960,7 +1013,7 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
         </div>
         <div class="field">
           <label for="cCp">Código postal *</label>
-          <input id="cCp" required placeholder="Ej: 1425" inputmode="numeric">
+          <input id="cCp" required placeholder="Ej: 1425" inputmode="numeric" maxlength="4" oninput="syncShippingFromCheckoutCp()">
         </div>
       </div>
       <div class="shipping-note">
@@ -1028,9 +1081,56 @@ async function loadProducts(){
 function fmt(n){return'$'+Number(n).toLocaleString('es-AR');}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
+// ===== ENVÍOS POR CÓDIGO POSTAL =====
+// Tabla: { cp: {label, price} }. Se mira primero por CP exacto; si no, se intenta el rango de CABA.
+const SHIPPING_TABLE = (() => {
+  const map = {};
+  // Zona 1 — $6.600
+  const z1 = ['1870','1872','1822','1820','1824','1825','1826','1827','1828','1830',
+              '1702','1704','1752','1766','1754','1770','1678','1650','1651','1653',
+              '1605','1602','1603','1604','1638','1640','1641','1642','1643','1644',
+              '1672','1674','1676','1684','1685','1657','1686','1688','1708','1707',
+              '1718','1714','1715','1716'];
+  z1.forEach(cp => map[cp] = {label:'GBA Zona 1', price:6600});
+  // Zona 2 — $8.600
+  const z2 = ['1832','1834','1836','1838','1828', // Lomas y aledaños
+              '1646','1648','1649', // San Fernando, Tigre
+              '1611','1613','1615','1617','1619', // Malvinas Argentinas
+              '1665','1744','1663','1722','1723','1771',
+              '1804','1805','1806', // Ezeiza
+              '1842','1840', // Esteban Echeverría / Monte Grande
+              '1846','1847','1848','1849','1850','1852','1853','1856', // Almirante Brown
+              '1878','1888',
+              '1880','1881','1882','1883','1884','1885']; // Berazategui
+  z2.forEach(cp => map[cp] = {label:'GBA Zona 2', price:8600});
+  // Zona 3 — $10.600
+  const z3 = ['1670', // Nordelta
+              '2804','2800', // Campana, Zárate
+              '1625','1626','1627', // Escobar
+              '1629','1631','1635','1636', // Pilar
+              '6700','1748','1727','1814','1865','1862','1925',
+              '1900','1901','1902','1903','1904','1905','1906','1907','1908','1909',
+              '1910','1911','1912','1913','1914']; // La Plata
+  z3.forEach(cp => map[cp] = {label:'GBA Zona 3', price:10600});
+  return map;
+})();
+
+function getShippingForCp(rawCp){
+  const cp = String(rawCp || '').replace(/\D/g, '').slice(0, 4);
+  if(cp.length !== 4) return null;
+  if(SHIPPING_TABLE[cp]) return Object.assign({cp}, SHIPPING_TABLE[cp]);
+  const num = parseInt(cp, 10);
+  if(num >= 1000 && num <= 1499) return {cp, label:'CABA', price:4800};
+  return null; // CP no reconocido — coordinamos por WhatsApp
+}
+
+// Estado del envío seleccionado. {cp, label, price} si calculado; null si no.
+let _shipping = null;
+
 // ===== CART =====
 let cart=[];
-function cartTotal(){return cart.reduce((s,i)=>s+i.price*i.qty,0);}
+function cartSubtotal(){return cart.reduce((s,i)=>s+i.price*i.qty,0);}
+function cartTotal(){return cartSubtotal() + (_shipping ? _shipping.price : 0);}
 function cartCount(){return cart.reduce((s,i)=>s+i.qty,0);}
 
 function updateCartUI(){
@@ -1055,7 +1155,22 @@ function updateCartUI(){
     return;
   }
   ft.style.display='block';
+  document.getElementById('cartSubtotalVal').textContent=fmt(cartSubtotal());
+  const shipRow = document.getElementById('cartShippingRow');
+  if(_shipping){
+    shipRow.style.display='';
+    document.getElementById('cartShippingVal').textContent=fmt(_shipping.price);
+  } else {
+    shipRow.style.display='none';
+  }
   document.getElementById('cartTotal').textContent=fmt(cartTotal());
+  // Refleja el resultado del cálculo de envío en la UI del carrito.
+  const shipResult = document.getElementById('cartShipResult');
+  if(_shipping && shipResult){
+    shipResult.style.display='';
+    shipResult.classList.remove('unknown');
+    shipResult.innerHTML = `Envío a <strong>${esc(_shipping.label)}</strong> (CP ${esc(_shipping.cp)}): <strong>${fmt(_shipping.price)}</strong>`;
+  }
   list.innerHTML=cart.map((it,idx)=>`
     <div class="cart-item">
       <div class="ci-img">${it.img?`<img src="${esc(it.img)}" alt="${esc(it.name)}">`:''}</div>
@@ -1076,6 +1191,62 @@ function updateCartUI(){
 
 function changeQty(idx,d){cart[idx].qty=Math.max(1,cart[idx].qty+d);updateCartUI();}
 function removeItem(idx){cart.splice(idx,1);updateCartUI();toast('Producto eliminado');}
+
+function calcShippingFromCart(){
+  const inp = document.getElementById('cartCpInput');
+  const cp = (inp.value || '').replace(/\D/g, '').slice(0, 4);
+  const result = document.getElementById('cartShipResult');
+  if(cp.length !== 4){
+    _shipping = null;
+    result.style.display = '';
+    result.classList.add('unknown');
+    result.textContent = 'Ingresá un código postal válido de 4 dígitos.';
+    updateCartUI();
+    return;
+  }
+  const ship = getShippingForCp(cp);
+  if(!ship){
+    _shipping = null;
+    result.style.display = '';
+    result.classList.add('unknown');
+    result.innerHTML = `CP <strong>${esc(cp)}</strong> no está en nuestras zonas. Escribinos por WhatsApp para coordinar el envío.`;
+    updateCartUI();
+    return;
+  }
+  _shipping = ship;
+  updateCartUI();
+  toast('Envío a ' + ship.label + ': ' + fmt(ship.price));
+}
+
+// Si la clienta cambia el CP en el input del checkout, intentamos recalcular.
+function syncShippingFromCheckoutCp(){
+  const cp = (document.getElementById('cCp').value || '').replace(/\D/g, '').slice(0, 4);
+  if(cp.length !== 4) return;
+  const ship = getShippingForCp(cp);
+  if(ship){
+    _shipping = ship;
+    document.getElementById('cartCpInput').value = cp;
+    updateCartUI();
+    renderCheckoutTotals();
+  } else {
+    _shipping = null;
+    updateCartUI();
+    renderCheckoutTotals();
+  }
+}
+
+function renderCheckoutTotals(){
+  document.getElementById('orderMiniSubtotalVal').textContent = fmt(cartSubtotal());
+  const shipBlk = document.getElementById('orderMiniShipping');
+  if(_shipping){
+    shipBlk.style.display = '';
+    document.getElementById('orderMiniShippingLbl').textContent = 'Envío (' + _shipping.label + ')';
+    document.getElementById('orderMiniShippingVal').textContent = fmt(_shipping.price);
+  } else {
+    shipBlk.style.display = 'none';
+  }
+  document.getElementById('orderMiniTotal').textContent = fmt(cartTotal());
+}
 
 function addToCart(product, size, color){
   const sz = size || null;
@@ -1105,6 +1276,11 @@ function openCart(){document.getElementById('cartOverlay').classList.add('open')
 function closeCart(){document.getElementById('cartOverlay').classList.remove('open');document.getElementById('cartSidebar').classList.remove('open');document.body.style.overflow='';}
 function openCheckout(){
   if(!cart.length)return;
+  // Si la clienta calculó el envío en el carrito, pre-rellenamos el CP del checkout.
+  if(_shipping && _shipping.cp){
+    const cCp = document.getElementById('cCp');
+    if(cCp && !cCp.value) cCp.value = _shipping.cp;
+  }
   closeCart();
   document.getElementById('orderMiniItems').innerHTML=cart.map(i=>{
     const extras = [
@@ -1113,7 +1289,7 @@ function openCheckout(){
     ].filter(Boolean).join(' · ');
     return `<div class="order-mini-item"><span>${i.qty}× ${esc(i.name)}${extras?` <span style="color:var(--muted);font-size:12px;">(${esc(extras)})</span>`:''}</span><span>${fmt(i.price*i.qty)}</span></div>`;
   }).join('');
-  document.getElementById('orderMiniTotal').textContent=fmt(cartTotal());
+  renderCheckoutTotals();
   document.getElementById('chOverlay').classList.add('open');
   document.body.style.overflow='hidden';
 }
@@ -1138,7 +1314,9 @@ function buildWhatsappMessage(sale, opts){
       const extras = [i.size ? 'Talle '+i.size : '', i.color ? 'Color '+i.color : ''].filter(Boolean).join(' · ');
       return `• ${i.qty}× ${i.name}${extras?' ('+extras+')':''}  —  ${fmt(i.price * i.qty)}`;
     }),
-    '', `💰 *Total:* ${fmt(sale.total)}`,
+    '', `🧾 *Subtotal:* ${fmt(sale.subtotal)}`,
+    sale.shipping ? `🚚 *Envío:* ${fmt(sale.shipping)}` : `🚚 *Envío:* a coordinar por WhatsApp`,
+    `💰 *Total:* ${fmt(sale.total)}`,
     `💳 *Pago:* ${o.paid ? 'MercadoPago (pagado)' : 'Efectivo al recibir'}`,
     c.notes ? `📝 *Nota:* ${c.notes}` : null,
     '', '🧡 Te contactamos por acá para coordinar el envío.',
@@ -1160,6 +1338,12 @@ async function submitOrder(method){
   const nota = document.getElementById('cNota').value.trim();
   if(!n || !a || !t || !d || !b || !cp){ toast('Completá todos los campos obligatorios'); return; }
   if(cart.length === 0){ toast('Tu carrito está vacío'); return; }
+  // Aseguramos que el envío esté sincronizado con el CP que la clienta dejó en el modal.
+  syncShippingFromCheckoutCp();
+  if(!_shipping){
+    toast('Tu CP no está en nuestras zonas — coordinamos por WhatsApp');
+    // No bloqueamos: dejamos shipping=0 y se confirma después por WhatsApp.
+  }
 
   const btnMp   = document.getElementById('btnPayMp');
   const btnCash = document.getElementById('btnPayCash');
@@ -1187,6 +1371,7 @@ async function submitOrder(method){
       color: i.color && i.color.name ? i.color.name : '',
       productId: i.productId || null
     })),
+    shipping: _shipping ? _shipping.price : 0,
     paymentMethod: method,
   };
 
@@ -1216,7 +1401,7 @@ async function submitOrder(method){
       });
       const j = await r.json();
       if(!r.ok || !j.init_point) throw new Error(j.error || 'MercadoPago no disponible');
-      cart = []; updateCartUI();
+      cart = []; _shipping = null; updateCartUI();
       window.location.href = j.init_point;
     }catch(err){
       setBusy(false);
@@ -1229,8 +1414,9 @@ async function submitOrder(method){
   const waUrl = waUrlForSale(sale, {paid:false});
   window.open(waUrl, '_blank');
   toast('¡Pedido enviado! Redirigiendo a WhatsApp 💌');
-  cart = []; updateCartUI(); closeCheckout();
+  cart = []; _shipping = null; updateCartUI(); closeCheckout();
   document.getElementById('checkoutForm').reset();
+  const cpInp = document.getElementById('cartCpInput'); if(cpInp) cpInp.value = '';
   setBusy(false);
 }
 
@@ -1271,9 +1457,15 @@ function openProductDetail(pid){
   if(!p) return;
   _pdProduct = p;
   _pdImgIdx = 0;
-  // Si el producto tiene un solo color, lo pre-seleccionamos; si tiene varios, la clienta elige.
+  // Si el producto tiene un solo color (con stock), lo pre-seleccionamos; si no, la clienta elige.
   const colors = Array.isArray(p.colors) ? p.colors : [];
-  _pdColorIdx = colors.length === 1 ? 0 : -1;
+  const sbc = (p.stockByColor && typeof p.stockByColor === 'object') ? p.stockByColor : {};
+  const hasSbc = colors.length && Object.keys(sbc).length > 0;
+  if(colors.length === 1){
+    _pdColorIdx = (!hasSbc || Number(sbc[colors[0].name] || 0) > 0) ? 0 : -1;
+  } else {
+    _pdColorIdx = -1;
+  }
   renderProductDetail();
   const ov = document.getElementById('pdOverlay');
   ov.classList.add('open');
@@ -1339,25 +1531,69 @@ function renderProductDetail(){
   const colorsWrap = document.getElementById('pdColors');
   const colorOpts = document.getElementById('pdColorOpts');
   const colorPicked = document.getElementById('pdColorPicked');
+  const stockInfo = document.getElementById('pdStockInfo');
+  const addBtn = document.getElementById('pdAddBtn');
   const colors = Array.isArray(p.colors) ? p.colors : [];
+  const sbc = (p.stockByColor && typeof p.stockByColor === 'object') ? p.stockByColor : {};
+  const hasPerColorStock = colors.length && Object.keys(sbc).length > 0;
+  const stockOf = (name) => Math.max(0, Number(sbc[name] || 0));
   if(colors.length){
     colorsWrap.style.display = '';
-    colorOpts.innerHTML = colors.map((c, i) => `
-      <button type="button"
-        class="pd-color-opt ${i === _pdColorIdx ? 'active' : ''}"
+    colorOpts.innerHTML = colors.map((c, i) => {
+      const out = hasPerColorStock && stockOf(c.name) <= 0;
+      const cls = ['pd-color-opt'];
+      if(i === _pdColorIdx) cls.push('active');
+      if(out) cls.push('out');
+      return `<button type="button"
+        class="${cls.join(' ')}"
         style="--_c:${esc(c.hex)}"
-        title="${esc(c.name)}"
-        aria-label="Color ${esc(c.name)}"
-        onclick="pdPickColor(${i})"></button>
-    `).join('');
-    colorPicked.textContent = _pdColorIdx >= 0 ? colors[_pdColorIdx].name : 'Elegí uno';
+        title="${esc(c.name)}${out ? ' (agotado)' : ''}"
+        aria-label="Color ${esc(c.name)}${out ? ' agotado' : ''}"
+        ${out ? 'aria-disabled="true"' : ''}
+        onclick="pdPickColor(${i}, ${out ? 'true' : 'false'})"></button>`;
+    }).join('');
+    if(_pdColorIdx >= 0){
+      colorPicked.textContent = colors[_pdColorIdx].name;
+      if(hasPerColorStock){
+        const s = stockOf(colors[_pdColorIdx].name);
+        stockInfo.style.display = '';
+        if(s <= 0){
+          stockInfo.textContent = 'Sin stock de este color';
+          stockInfo.classList.add('out');
+        } else {
+          stockInfo.textContent = s <= 3 ? `¡Últimas ${s} unidades!` : 'Stock disponible';
+          stockInfo.classList.remove('out');
+        }
+      } else {
+        stockInfo.style.display = 'none';
+      }
+    } else {
+      colorPicked.textContent = 'Elegí uno';
+      stockInfo.style.display = 'none';
+    }
   } else {
     colorsWrap.style.display = 'none';
     colorOpts.innerHTML = '';
+    stockInfo.style.display = 'none';
+  }
+
+  // Botón: deshabilitado si el color elegido está agotado, o si NO hay colores y stock global = 0.
+  let disabled = false, label = 'Agregar al carrito ✨';
+  if(colors.length){
+    if(_pdColorIdx >= 0 && hasPerColorStock && stockOf(colors[_pdColorIdx].name) <= 0){
+      disabled = true; label = 'Color agotado';
+    }
+  } else if(typeof p.stock === 'number' && p.stock <= 0){
+    disabled = true; label = 'Sin stock';
+  }
+  if(addBtn){
+    addBtn.disabled = disabled;
+    addBtn.textContent = label;
   }
 }
 
-function pdPickColor(i){
+function pdPickColor(i, isOut){
+  if(isOut){ toast('Ese color está agotado'); return; }
   _pdColorIdx = i;
   renderProductDetail();
 }
@@ -1383,15 +1619,27 @@ function pdSetImage(i){ _pdImgIdx = i; renderProductDetail(); }
 function pdAddToCart(){
   if(!_pdProduct) return;
   const colors = Array.isArray(_pdProduct.colors) ? _pdProduct.colors : [];
+  const sbc = (_pdProduct.stockByColor && typeof _pdProduct.stockByColor === 'object') ? _pdProduct.stockByColor : {};
+  const hasSbc = colors.length && Object.keys(sbc).length > 0;
   let color = null;
   if(colors.length){
     if(_pdColorIdx < 0){
       toast('Elegí un color antes de agregar al carrito');
-      // Scroll al bloque de colores para que se vea
       document.getElementById('pdColors').scrollIntoView({behavior:'smooth', block:'center'});
       return;
     }
     color = colors[_pdColorIdx];
+    if(hasSbc){
+      const avail = Math.max(0, Number(sbc[color.name] || 0));
+      if(avail <= 0){ toast('Ese color está agotado'); return; }
+      // Cuántos hay ya en el carrito de ese color/producto
+      const inCart = cart
+        .filter(it => it.id === _pdProduct.id && it.color && it.color.name === color.name)
+        .reduce((s,it) => s + it.qty, 0);
+      if(inCart >= avail){ toast(`Ya agregaste todo el stock de ${color.name}`); return; }
+    }
+  } else if(typeof _pdProduct.stock === 'number' && _pdProduct.stock <= 0){
+    toast('Sin stock'); return;
   }
   addToCart(_pdProduct, null, color);
 }
@@ -1423,7 +1671,11 @@ function renderSlider(force){
   emp.style.display='none';
 
   const mode = window.innerWidth <= 768 ? 'mobile' : 'desktop';
-  const sig = mode + '|' + prods.map(p => p.id + ':' + (p.images && p.images[0] || '') + ':' + p.price).join(',');
+  const sig = mode + '|' + prods.map(p => [
+    p.id, p.name, p.price, p.old || '', p.tag || '',
+    (p.images && p.images[0]) || '',
+    (p.colors || []).map(c => c.name + c.hex).join('/')
+  ].join(':')).join(',');
   if(!force && sig === _sliderSignature && mode === _sliderLastMode) return;
   _sliderSignature = sig;
   _sliderLastMode = mode;
@@ -1435,15 +1687,15 @@ function renderSlider(force){
     return;
   }
 
-  // Desktop: marquee infinito con duplicados para que no se corte visualmente.
-  let copies=2;
-  if(prods.length<=3)copies=4;
-  else if(prods.length<=5)copies=3;
-  let html='';
-  for(let i=0;i<copies;i++)html+=prods.map(p => productCardHTML(p, true)).join('');
-  track.innerHTML=html;
-  const baseDur=Math.max(22, prods.length*8);
-  track.style.animationDuration=baseDur+'s';
+  // Desktop: marquee infinito. La animación CSS va de translateX(0) a translateX(-50%),
+  // así que necesitamos EXACTAMENTE 2 copias para que el loop sea seamless. Si hay pocos
+  // productos, repetimos el listado dentro de cada copia para que el carrusel se vea lleno.
+  let inner = prods.slice();
+  while(inner.length < 6) inner = inner.concat(prods);
+  const oneCopy = inner.map(p => productCardHTML(p, true)).join('');
+  track.innerHTML = oneCopy + oneCopy;
+  const baseDur = Math.max(22, inner.length * 8);
+  track.style.animationDuration = baseDur + 's';
 }
 
 // Re-render del slider SOLO si cruza el breakpoint mobile↔desktop.
@@ -1584,3 +1836,4 @@ loadProducts().then(() => {
 </script>
 </body>
 </html>
+
