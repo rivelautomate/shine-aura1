@@ -242,6 +242,21 @@ html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
   font-size:14px;padding:0 4px;line-height:1;}
 .color-chip .rm:hover{color:var(--red);}
 
+/* STOCK POR COLOR */
+.color-stock-panel{display:flex;flex-direction:column;gap:8px;margin-top:10px;
+  padding:12px;background:var(--paper-2);border-radius:12px;}
+.color-stock-panel .csp-title{font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--muted);font-weight:600;}
+.color-stock-row{display:flex;align-items:center;gap:10px;padding:8px 10px;
+  background:#fff;border:1px solid var(--line);border-radius:10px;}
+.color-stock-row .swatch{width:22px;height:22px;border-radius:50%;
+  border:1px solid rgba(10,10,10,.2);flex-shrink:0;}
+.color-stock-row .csr-name{flex:1;font-size:13px;font-weight:500;}
+.color-stock-row input[type="number"]{width:80px;padding:7px 10px;border-radius:8px;
+  border:1px solid var(--line);font-family:inherit;font-size:13px;outline:none;text-align:right;}
+.color-stock-row input[type="number"]:focus{border-color:var(--ink);}
+.color-stock-empty{font-size:12px;color:var(--muted);padding:6px 4px;}
+
 /* TOGGLE */
 .toggle-field{display:flex;align-items:center;gap:12px;margin-bottom:14px;
   padding:14px;background:#fff;border-radius:12px;border:1px solid var(--line);}
@@ -478,9 +493,9 @@ html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
           <input id="fOld" type="number" min="0" placeholder="80000">
         </label>
       </div>
-      <label class="form-field">Stock
+      <label class="form-field" id="fStockField">Stock
         <input id="fStock" type="number" min="0" placeholder="10" value="0">
-        <span class="form-help">Cantidad disponible (informativo, solo lo ves vos en el admin)</span>
+        <span class="form-help">Cantidad disponible. Si el producto tiene colores, el stock se carga por cada color (ver más abajo).</span>
       </label>
 
       <label class="form-field">Fotos del producto
@@ -505,6 +520,15 @@ html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
         </div>
         <span class="form-help">Elegí un color con el cuadradito, ponele nombre y tocá "+ Agregar". La clienta va a poder elegirlo al comprar. Dejá vacío si el producto no tiene variantes de color.</span>
       </label>
+
+      <div class="form-field" id="colorStockField" style="display:none;">
+        <span style="font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:600;">Stock por color</span>
+        <div class="color-stock-panel">
+          <span class="csp-title">Cantidad disponible de cada color</span>
+          <div id="colorStockList"></div>
+        </div>
+        <span class="form-help">Cargá cuánto tenés de cada color. La clienta solo va a poder comprar los colores con stock.</span>
+      </div>
 
       <div class="toggle-field">
         <label for="fFeatured">
@@ -681,7 +705,11 @@ function renderGrid(){
         </div>
         ${p.sizes && p.sizes.length ? `<div class="admin-card-sizes">Talles: ${esc(p.sizes.join(', '))}</div>` : ''}
         ${p.colors && p.colors.length ? `<div class="admin-card-sizes" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">Colores: ${p.colors.map(c => `<span title="${esc(c.name)}" style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${esc(c.hex)};border:1px solid rgba(10,10,10,.2);"></span>`).join('')}</div>` : ''}
-        <div class="admin-card-stock">Stock: ${p.stock || 0}</div>
+        <div class="admin-card-stock">Stock: ${p.stock || 0}${
+          p.colors && p.colors.length && p.stockByColor
+            ? ' <span style="opacity:.7;">(' + p.colors.map(c => esc(c.name) + ': ' + (p.stockByColor[c.name] || 0)).join(' · ') + ')</span>'
+            : ''
+        }</div>
         <div class="admin-card-actions">
           <button class="btn btn-outline btn-sm" onclick="openProductModal(${p.dbId})">✏️ Editar</button>
           <button class="btn btn-red btn-sm" onclick="confirmDelete('product', ${p.dbId}, ${JSON.stringify(p.name).replace(/"/g,'&quot;')})">🗑️</button>
@@ -761,6 +789,7 @@ function showSavingPill(msg, cls, autoHide){
 // ============ PRODUCT MODAL + UPLOAD ============
 let _modalImages = [];
 let _modalColors = [];
+let _modalStockByColor = {};
 
 function openProductModal(id){
   document.getElementById('productModalTitle').textContent = id ? 'Editar producto' : 'Agregar producto';
@@ -771,6 +800,7 @@ function openProductModal(id){
   document.getElementById('fFeatured').checked = false;
   _modalImages = [];
   _modalColors = [];
+  _modalStockByColor = {};
 
   if(id){
     const p = _products.find(x => x.dbId === id);
@@ -787,9 +817,11 @@ function openProductModal(id){
     document.getElementById('fFeatured').checked = !!p.featured;
     _modalImages = (p.images || []).slice();
     _modalColors = Array.isArray(p.colors) ? p.colors.slice() : [];
+    _modalStockByColor = (p.stockByColor && typeof p.stockByColor === 'object') ? Object.assign({}, p.stockByColor) : {};
   }
   renderImgGrid();
   renderColorChips();
+  renderColorStockPanel();
   document.getElementById('productModalOverlay').classList.add('open');
   document.body.style.overflow='hidden';
 }
@@ -823,12 +855,52 @@ function addColor(){
   }
   if(_modalColors.length >= 20){ toast('Máximo 20 colores', true); return; }
   _modalColors.push({name, hex});
+  if(!(name in _modalStockByColor)) _modalStockByColor[name] = 0;
   nameEl.value = '';
   renderColorChips();
+  renderColorStockPanel();
   nameEl.focus();
 }
 
-function removeColor(i){ _modalColors.splice(i, 1); renderColorChips(); }
+function removeColor(i){
+  const c = _modalColors[i];
+  _modalColors.splice(i, 1);
+  if(c && c.name) delete _modalStockByColor[c.name];
+  renderColorChips();
+  renderColorStockPanel();
+}
+
+function renderColorStockPanel(){
+  const wrap = document.getElementById('colorStockField');
+  const stockField = document.getElementById('fStockField');
+  const list = document.getElementById('colorStockList');
+  if(!wrap || !list) return;
+  if(!_modalColors.length){
+    wrap.style.display = 'none';
+    if(stockField) stockField.style.display = '';
+    list.innerHTML = '';
+    return;
+  }
+  wrap.style.display = '';
+  // Cuando hay colores, ocultamos el stock global porque el stock real lo definen los colores.
+  if(stockField) stockField.style.display = 'none';
+  list.innerHTML = _modalColors.map((c, i) => {
+    const val = Number(_modalStockByColor[c.name] || 0);
+    return `<div class="color-stock-row">
+      <span class="swatch" style="background:${esc(c.hex)}"></span>
+      <span class="csr-name">${esc(c.name)}</span>
+      <input type="number" min="0" value="${val}" data-color="${esc(c.name)}"
+        oninput="onColorStockInput(this)">
+    </div>`;
+  }).join('');
+}
+
+function onColorStockInput(el){
+  const name = el.getAttribute('data-color');
+  if(!name) return;
+  const n = Math.max(0, parseInt(el.value || '0', 10) || 0);
+  _modalStockByColor[name] = n;
+}
 
 // Enter en el input de nombre también agrega
 document.addEventListener('DOMContentLoaded', () => {
@@ -904,6 +976,17 @@ async function saveProduct(e){
   e.preventDefault();
   const id = document.getElementById('editId').value;
   const oldVal = document.getElementById('fOld').value;
+  // Si hay colores, el stock global se reemplaza por la suma del stock por color (es lo que la
+  // tienda termina mostrando como "stock total"). Si no hay colores, usamos el campo Stock global.
+  const sbc = {};
+  let totalStock = 0;
+  if(_modalColors.length){
+    for(const c of _modalColors){
+      const n = Math.max(0, parseInt(_modalStockByColor[c.name] || 0, 10) || 0);
+      sbc[c.name] = n;
+      totalStock += n;
+    }
+  }
   const payload = {
     name: document.getElementById('fName').value.trim(),
     cat: document.getElementById('fCat').value,
@@ -912,7 +995,8 @@ async function saveProduct(e){
     longDesc: document.getElementById('fLongDesc').value.trim(),
     price: Number(document.getElementById('fPrice').value),
     old: oldVal ? Number(oldVal) : null,
-    stock: Number(document.getElementById('fStock').value || 0),
+    stock: _modalColors.length ? totalStock : Number(document.getElementById('fStock').value || 0),
+    stockByColor: sbc,
     images: _modalImages,
     colors: _modalColors,
     featured: document.getElementById('fFeatured').checked,
