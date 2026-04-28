@@ -59,6 +59,10 @@ function sa_run_migrations(PDO $pdo): void {
     if (!sa_column_exists($pdo, 'products', 'colors')) {
         $pdo->exec("ALTER TABLE products ADD COLUMN colors TEXT NOT NULL DEFAULT '[]'");
     }
+    // Stock diferenciado por color: JSON {"Blanco": 5, "Negro": 3}.
+    if (!sa_column_exists($pdo, 'products', 'stock_by_color')) {
+        $pdo->exec("ALTER TABLE products ADD COLUMN stock_by_color TEXT NOT NULL DEFAULT '{}'");
+    }
 }
 
 function sa_table_exists(PDO $pdo, string $name): bool {
@@ -163,6 +167,7 @@ function sa_product_to_api(array $row): array {
         'images'       => json_decode($row['images'] ?: '[]', true) ?: [],
         'installments' => $row['installments'],
         'stock'        => (int)$row['stock'],
+        'stockByColor' => json_decode(($row['stock_by_color'] ?? '{}') ?: '{}', true) ?: (object)[],
         'active'       => (bool)$row['active'],
     ];
 }
@@ -196,5 +201,6 @@ function sa_sale_to_api(array $row): array {
         'updatedAt'     => $row['updated_at'],
     ];
 }
+
 
 
