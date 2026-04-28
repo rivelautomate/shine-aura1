@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS products (
   images TEXT NOT NULL DEFAULT '[]',
   installments TEXT,
   stock INTEGER NOT NULL DEFAULT 0,
+  stock_by_color TEXT NOT NULL DEFAULT '{}',
   active INTEGER NOT NULL DEFAULT 1,
   sort_order INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
