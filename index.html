@@ -945,7 +945,7 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
     <div class="ship-calc">
       <span class="ship-calc-label">Calculá tu envío</span>
       <div class="ship-calc-row">
-        <input type="text" id="cartCpInput" placeholder="Tu código postal (Ej: 1425)" inputmode="numeric" maxlength="4">
+        <input type="text" id="cartCpInput" placeholder="Tu código postal (Ej: 1425)" inputmode="numeric" maxlength="4" oninput="onCartCpInput()">
         <button type="button" id="cartCalcShipBtn" onclick="calcShippingFromCart()">Calcular</button>
       </div>
       <div class="ship-calc-result" id="cartShipResult" style="display:none;"></div>
@@ -1219,9 +1219,19 @@ function calcShippingFromCart(){
 }
 
 // Si la clienta cambia el CP en el input del checkout, intentamos recalcular.
+// Si el CP queda vacío o incompleto, limpiamos el envío (no dejar valor viejo "trabado").
 function syncShippingFromCheckoutCp(){
   const cp = (document.getElementById('cCp').value || '').replace(/\D/g, '').slice(0, 4);
-  if(cp.length !== 4) return;
+  if(cp.length !== 4){
+    _shipping = null;
+    const cartInp = document.getElementById('cartCpInput');
+    if(cartInp) cartInp.value = '';
+    const shipResult = document.getElementById('cartShipResult');
+    if(shipResult) shipResult.style.display = 'none';
+    updateCartUI();
+    renderCheckoutTotals();
+    return;
+  }
   const ship = getShippingForCp(cp);
   if(ship){
     _shipping = ship;
@@ -1230,6 +1240,23 @@ function syncShippingFromCheckoutCp(){
     renderCheckoutTotals();
   } else {
     _shipping = null;
+    updateCartUI();
+    renderCheckoutTotals();
+  }
+}
+
+// Reacción cuando la clienta tipea en el input de CP del carrito.
+// Si lo borra (o queda incompleto), limpiamos el envío para que no quede pegado el valor viejo.
+function onCartCpInput(){
+  const inp = document.getElementById('cartCpInput');
+  const cp = (inp.value || '').replace(/\D/g, '').slice(0, 4);
+  if(cp.length < 4){
+    _shipping = null;
+    const shipResult = document.getElementById('cartShipResult');
+    if(shipResult) shipResult.style.display = 'none';
+    // Si el checkout está abierto, sincronizamos también su input.
+    const cCp = document.getElementById('cCp');
+    if(cCp) cCp.value = cp;
     updateCartUI();
     renderCheckoutTotals();
   }
