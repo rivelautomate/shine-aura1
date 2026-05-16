@@ -35,6 +35,16 @@ $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $orderCode = $_GET['orderCode'] ?? null;
 $pdo = sa_db();
 
+// Auto-expirar pendientes con más de 48hs sin pagar.
+// Se ejecuta cada vez que se listan o consultan ventas — es barato (un UPDATE indexado).
+$pdo->exec("
+    UPDATE sales
+    SET payment_status = 'expired', updated_at = datetime('now')
+    WHERE payment_status = 'pending'
+      AND payment_method = 'mp'
+      AND datetime(created_at) < datetime('now', '-48 hours')
+");
+
 if ($method === 'POST') {
     $in = sa_read_json_body();
     $customer = is_array($in['customer'] ?? null) ? $in['customer'] : [];
@@ -111,7 +121,7 @@ if ($method === 'PUT') {
     $fields = [];
     $params = [':id' => $id];
     if (isset($in['paymentStatus'])) {
-        if (!in_array($in['paymentStatus'], ['pending','paid','failed','cancelled'], true)) sa_fail('paymentStatus inválido', 400);
+        if (!in_array($in['paymentStatus'], ['pending','paid','failed','cancelled','expired'], true)) sa_fail('paymentStatus inválido', 400);
         $fields[] = "payment_status = :ps"; $params[':ps'] = $in['paymentStatus'];
     }
     if (isset($in['orderStatus'])) {

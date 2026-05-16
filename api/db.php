@@ -63,6 +63,30 @@ function sa_run_migrations(PDO $pdo): void {
     if (!sa_column_exists($pdo, 'products', 'stock_by_color')) {
         $pdo->exec("ALTER TABLE products ADD COLUMN stock_by_color TEXT NOT NULL DEFAULT '{}'");
     }
+    // Tabla de intentos de login para rate-limit por IP.
+    if (!sa_table_exists($pdo, 'login_attempts')) {
+        $pdo->exec("
+            CREATE TABLE login_attempts (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              ip TEXT NOT NULL,
+              username TEXT,
+              success INTEGER NOT NULL DEFAULT 0,
+              created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+        ");
+        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_attempts_ip_time ON login_attempts(ip, created_at DESC)");
+    }
+}
+
+// Devuelve la IP real del cliente, considerando reverse-proxy (Traefik/Easypanel).
+function sa_client_ip(): string {
+    $fwd = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '';
+    if ($fwd !== '') {
+        $parts = explode(',', $fwd);
+        $ip = trim($parts[0]);
+        if (filter_var($ip, FILTER_VALIDATE_IP)) return $ip;
+    }
+    return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 }
 
 function sa_table_exists(PDO $pdo, string $name): bool {

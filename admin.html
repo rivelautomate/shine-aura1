@@ -165,6 +165,13 @@ html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
 .status-paid{background:rgba(22,163,74,.14);color:var(--green);}
 .status-failed{background:rgba(220,38,38,.14);color:var(--red);}
 .status-cancelled{background:rgba(10,10,10,.08);color:var(--muted);}
+.status-expired{background:rgba(10,10,10,.08);color:var(--muted);font-style:italic;}
+
+.wa-btn{display:inline-flex;align-items:center;gap:4px;margin-top:6px;
+  background:#25d366;color:#fff !important;text-decoration:none;
+  padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;
+  transition:filter .2s;}
+.wa-btn:hover{filter:brightness(.92);}
 .status-new{background:rgba(37,99,235,.14);color:var(--blue);}
 .status-processing{background:rgba(202,138,4,.14);color:var(--yellow);}
 .status-shipped{background:rgba(37,99,235,.14);color:var(--blue);}
@@ -397,11 +404,15 @@ html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
       </div>
       <div class="stats-row" id="statsRow"></div>
       <div class="filter-row">
-        <button class="fchip active" data-s="all" onclick="filterSales('all',this)">Todas</button>
-        <button class="fchip" data-s="pending" onclick="filterSales('pending',this)">Pendientes pago</button>
-        <button class="fchip" data-s="paid" onclick="filterSales('paid',this)">Pagadas</button>
-        <button class="fchip" data-s="failed" onclick="filterSales('failed',this)">Fallidas</button>
-        <button class="fchip" data-s="cancelled" onclick="filterSales('cancelled',this)">Canceladas</button>
+        <button class="fchip active" data-s="paid" onclick="filterSales('paid',this)">✅ Ventas reales</button>
+        <button class="fchip" data-s="pending" onclick="filterSales('pending',this)">⏳ Intentos sin pagar</button>
+        <button class="fchip" data-s="expired" onclick="filterSales('expired',this)">⌛ Expiradas</button>
+        <button class="fchip" data-s="failed" onclick="filterSales('failed',this)">❌ Fallidas</button>
+        <button class="fchip" data-s="cancelled" onclick="filterSales('cancelled',this)">⊘ Canceladas</button>
+        <button class="fchip" data-s="all" onclick="filterSales('all',this)">Ver todo</button>
+      </div>
+      <div id="pendingWarn" style="display:none;background:rgba(202,138,4,.1);border:1px solid rgba(202,138,4,.3);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:16px;color:#7a5500;">
+        ⚠️ Acá estás viendo <b>intentos de pago no concretados</b> — el cliente le dio "Pagar con MercadoPago" pero nunca completó el pago. <b>NO son ventas reales</b>, no las cobraste.
       </div>
       <div class="sales-wrap">
         <table class="sales-table">
@@ -1028,7 +1039,7 @@ async function saveProduct(e){
 
 // ============ SALES ============
 let _sales = [];
-let salesFilter = 'all';
+let salesFilter = 'paid'; // Por defecto mostramos solo las VENTAS REALES (pagadas), no los intentos sin pagar.
 
 async function refreshSales(){
   try{
@@ -1044,6 +1055,8 @@ function filterSales(s, btn){
   salesFilter = s;
   document.querySelectorAll('.fchip').forEach(c => c.classList.remove('active'));
   btn.classList.add('active');
+  const warn = document.getElementById('pendingWarn');
+  if (warn) warn.style.display = (s === 'pending' || s === 'expired') ? '' : 'none';
   renderSales();
 }
 
@@ -1057,21 +1070,26 @@ function renderSales(){
   });
   const paidSales = _sales.filter(s => s.paymentStatus === 'paid');
   const paidTotal = paidSales.reduce((a, s) => a + (s.total || 0), 0);
+  const paidMonthSales = paidSales.filter(s => {
+    const d = new Date((s.createdAt || '').replace(' ', 'T') + 'Z');
+    return d >= thisMonth;
+  });
+  const paidMonthTotal = paidMonthSales.reduce((a, s) => a + (s.total || 0), 0);
   const pendCount = _sales.filter(s => s.paymentStatus === 'pending').length;
 
   document.getElementById('statsRow').innerHTML = `
-    <div class="stat-card"><div class="stat-label">Este mes</div>
-      <div class="stat-val">${monthSales.length}</div>
-      <div class="stat-sub">pedidos</div></div>
-    <div class="stat-card"><div class="stat-label">Pagadas</div>
+    <div class="stat-card"><div class="stat-label">Vendido este mes</div>
+      <div class="stat-val">${fmt(paidMonthTotal)}</div>
+      <div class="stat-sub">${paidMonthSales.length} ventas reales</div></div>
+    <div class="stat-card"><div class="stat-label">Ventas reales totales</div>
       <div class="stat-val">${paidSales.length}</div>
       <div class="stat-sub">${fmt(paidTotal)} facturados</div></div>
-    <div class="stat-card"><div class="stat-label">Pendientes</div>
+    <div class="stat-card"><div class="stat-label">Intentos sin pagar</div>
       <div class="stat-val">${pendCount}</div>
-      <div class="stat-sub">esperando pago</div></div>
-    <div class="stat-card"><div class="stat-label">Total pedidos</div>
-      <div class="stat-val">${_sales.length}</div>
-      <div class="stat-sub">historial completo</div></div>
+      <div class="stat-sub">${pendCount > 0 ? 'NO son ventas — nunca pagaron' : 'todo al día'}</div></div>
+    <div class="stat-card"><div class="stat-label">Pedidos del mes</div>
+      <div class="stat-val">${monthSales.length}</div>
+      <div class="stat-sub">incluye intentos no pagados</div></div>
   `;
 
   const body = document.getElementById('salesBody');
@@ -1079,7 +1097,7 @@ function renderSales(){
   if(!filtered.length){ body.innerHTML=''; empty.style.display=''; return; }
   empty.style.display='none';
 
-  const payStatusLabel = {pending:'⏳ Pendiente', paid:'✅ Pagado', failed:'❌ Fallido', cancelled:'⊘ Cancelado'};
+  const payStatusLabel = {pending:'⏳ Pendiente', paid:'✅ Pagado', failed:'❌ Fallido', cancelled:'⊘ Cancelado', expired:'⌛ Expirada'};
   const orderStatusLabel = {new:'🆕 Nuevo', processing:'🛠 Preparando', shipped:'📦 Enviado', delivered:'🏠 Entregado', cancelled:'⊘ Cancelado'};
 
   body.innerHTML = filtered.map(s => {
@@ -1088,7 +1106,11 @@ function renderSales(){
       return `${i.qty}× ${esc(i.name)}${extras ? ' (' + esc(extras) + ')' : ''}`;
     }).join(', ');
     const c = s.customer || {};
-    return `<tr>
+    const phoneDigits = (c.phone || '').replace(/\D/g, '');
+    const waMsg = `Hola ${c.name || ''}! Te escribimos de Shine Aura por tu pedido ${s.orderCode}. `;
+    const waUrl = phoneDigits ? `https://wa.me/${phoneDigits}?text=${encodeURIComponent(waMsg)}` : '';
+    const rowDim = (s.paymentStatus !== 'paid') ? 'opacity:.65;' : '';
+    return `<tr style="${rowDim}">
       <td style="white-space:nowrap;font-size:12px;color:var(--muted);">${fmtDate(s.createdAt)}</td>
       <td>
         <div class="sale-code">${esc(s.orderCode)}</div>
@@ -1096,6 +1118,7 @@ function renderSales(){
       <td>
         <div class="sale-cust">${esc((c.name || '') + ' ' + (c.lastname || ''))}</div>
         <div class="sale-items">${esc(c.district || '')}</div>
+        ${waUrl ? `<a href="${waUrl}" target="_blank" rel="noopener" class="wa-btn" title="Escribir por WhatsApp">📱 ${esc(c.phone || '')}</a>` : `<div class="sale-items">${esc(c.phone || 'sin tel')}</div>`}
       </td>
       <td><div class="sale-items">${items}</div></td>
       <td style="font-weight:600;white-space:nowrap;">${fmt(s.total)}</td>
@@ -1118,7 +1141,7 @@ function renderSales(){
   }).join('');
 }
 
-const PAYMENT_CYCLE = ['pending','paid','failed','cancelled'];
+const PAYMENT_CYCLE = ['pending','paid','failed','expired','cancelled'];
 const ORDER_CYCLE = ['new','processing','shipped','delivered','cancelled'];
 
 async function cyclePaymentStatus(id){

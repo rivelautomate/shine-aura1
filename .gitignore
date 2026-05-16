@@ -1,0 +1,10 @@
+# Volúmenes persistentes en Easypanel — NO subir
+data/
+uploads/
+
+# Backups y temporales
+*.mine
+*.bak
+*.swp
+.DS_Store
+Thumbs.db

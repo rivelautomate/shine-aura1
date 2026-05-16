@@ -83,14 +83,51 @@ if (basename($_SERVER['SCRIPT_NAME']) === 'auth.php') {
         if ($username === '' || $password === '') sa_fail('Usuario y contraseña son obligatorios', 400);
 
         $pdo = sa_db();
+        $ip = sa_client_ip();
+
+        // Rate limit: si la IP tuvo >=5 fallos en los últimos 15 min, bloquearla por 30 min.
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) FROM login_attempts
+            WHERE ip = :ip AND success = 0
+              AND datetime(created_at) > datetime('now', '-15 minutes')
+        ");
+        $stmt->execute([':ip' => $ip]);
+        $recentFails = (int)$stmt->fetchColumn();
+
+        if ($recentFails >= 5) {
+            // Verificar si la IP sigue bloqueada (último fallo dentro de los últimos 30 min)
+            $stmt = $pdo->prepare("
+                SELECT MAX(created_at) FROM login_attempts
+                WHERE ip = :ip AND success = 0
+                  AND datetime(created_at) > datetime('now', '-30 minutes')
+            ");
+            $stmt->execute([':ip' => $ip]);
+            if ($stmt->fetchColumn()) {
+                usleep(800000);
+                sa_fail('Demasiados intentos fallidos. Esperá 30 minutos antes de reintentar.', 429);
+            }
+        }
+
         $stmt = $pdo->prepare("SELECT id, password_hash FROM admin_users WHERE username = :u");
         $stmt->execute([':u' => $username]);
         $row = $stmt->fetch();
+
         if (!$row || !password_verify($password, $row['password_hash'])) {
+            // Registrar el fallo
+            $log = $pdo->prepare("INSERT INTO login_attempts (ip, username, success) VALUES (:ip, :u, 0)");
+            $log->execute([':ip' => $ip, ':u' => substr($username, 0, 80)]);
+            // Limpieza ocasional: borrar intentos viejos (>7 días)
+            if (random_int(1, 20) === 1) {
+                $pdo->exec("DELETE FROM login_attempts WHERE datetime(created_at) < datetime('now', '-7 days')");
+            }
             // Pequeño delay para dificultar fuerza bruta sin ser molesto.
             usleep(400000);
             sa_fail('Usuario o contraseña incorrectos', 401);
         }
+
+        // Login exitoso — registrar y emitir sesión.
+        $log = $pdo->prepare("INSERT INTO login_attempts (ip, username, success) VALUES (:ip, :u, 1)");
+        $log->execute([':ip' => $ip, ':u' => substr($username, 0, 80)]);
         sa_issue_session($pdo, (int)$row['id']);
         sa_json(['user' => ['id' => (int)$row['id'], 'username' => $username]]);
     }

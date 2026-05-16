@@ -3,7 +3,21 @@
 # el cliente siempre ve la versión nueva sin tener que hacer hard refresh.
 
 <IfModule mod_headers.c>
-  # HTML: nunca cachear
+  # ===== SECURITY HEADERS (aplican a todo) =====
+  # Fuerza HTTPS por 1 año en navegadores que ya visitaron el sitio.
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+  # Evita que la página sea metida en un <iframe> por otro sitio (clickjacking).
+  Header always set X-Frame-Options "SAMEORIGIN"
+  # No dejar al navegador adivinar el MIME type de los archivos.
+  Header always set X-Content-Type-Options "nosniff"
+  # Solo mandar el referer al mismo origen.
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  # Bloquea APIs sensibles del navegador (camara, micrófono, geo) por defecto.
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+  # CSP suave: permite recursos del mismo origen + MercadoPago + Google Fonts + inline scripts (sitio actual usa muchos).
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://*.mercadopago.com https://sdk.mercadopago.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://*.mercadopago.com https://api.mercadopago.com; frame-src https://*.mercadopago.com; object-src 'none'; base-uri 'self'; form-action 'self' https://*.mercadopago.com"
+
+  # HTML: nunca cachear (siempre pedir versión nueva al servidor)
   <FilesMatch "\.(html|htm)$">
     Header set Cache-Control "no-cache, no-store, must-revalidate"
     Header set Pragma "no-cache"
@@ -17,8 +31,20 @@
     Header set Expires "0"
   </FilesMatch>
 
-  # Imágenes, fuentes y CSS: se pueden cachear por 1 día
+  # Imágenes, fuentes y CSS: sí se pueden cachear por 1 día (son estáticos).
   <FilesMatch "\.(jpg|jpeg|png|gif|webp|svg|woff|woff2|ttf|css|ico)$">
     Header set Cache-Control "public, max-age=86400"
   </FilesMatch>
 </IfModule>
+
+# Bloquear acceso directo a archivos sensibles
+<FilesMatch "\.(log|db|sql|env|ini|sqlite)$">
+  Require all denied
+</FilesMatch>
+
+# Bloquear acceso a /data y /db por directorio (la BD vive ahí)
+RedirectMatch 404 ^/data/.*$
+RedirectMatch 404 ^/db/.*$
+
+# Desactivar listado de directorios
+Options -Indexes

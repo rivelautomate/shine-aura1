@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/telegram.php';
 
 // Webhook de MercadoPago: cuando MP confirma/actualiza un pago, nos notifica acá.
 // Configurar en MP developers la URL: https://<dominio>/api/mp-webhook.php
@@ -101,6 +102,13 @@ try {
     $paymentStatus = $map[$status] ?? 'pending';
 
     $pdo = sa_db();
+
+    // Antes del UPDATE, leo el status anterior para decidir si mandar notificación
+    // (solo notifico cuando pasa a `paid` y antes NO era `paid`, así no duplico).
+    $stmtPrev = $pdo->prepare("SELECT payment_status FROM sales WHERE order_code = :code");
+    $stmtPrev->execute([':code' => $orderCode]);
+    $prevStatus = $stmtPrev->fetchColumn();
+
     $stmt = $pdo->prepare("
         UPDATE sales
         SET payment_status = :ps,
@@ -115,7 +123,17 @@ try {
         ':ptype' => $mpPaymentType ?: null,
         ':code'  => $orderCode,
     ]);
-    sa_log_webhook("OK code=$orderCode status=$status -> $paymentStatus mpId=$mpPaymentId");
+    sa_log_webhook("OK code=$orderCode status=$status -> $paymentStatus mpId=$mpPaymentId (prev=$prevStatus)");
+
+    // Notificación Telegram: solo si la venta acaba de pasar a `paid`.
+    if ($paymentStatus === 'paid' && $prevStatus !== 'paid') {
+        $stmtSale = $pdo->prepare("SELECT * FROM sales WHERE order_code = :code");
+        $stmtSale->execute([':code' => $orderCode]);
+        $sale = $stmtSale->fetch();
+        if ($sale) {
+            sa_telegram_notify_sale($sale);
+        }
+    }
 
     http_response_code(200); echo 'ok';
 } catch (Throwable $e) {
