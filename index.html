@@ -1012,13 +1012,13 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
           <input id="cBarrio" required placeholder="Ej: Palermo">
         </div>
         <div class="field">
-          <label for="cCp">Código postal *</label>
-          <input id="cCp" required placeholder="Ej: 1425" inputmode="numeric" maxlength="4" oninput="syncShippingFromCheckoutCp()">
+          <label for="cCp">Código postal (opcional)</label>
+          <input id="cCp" placeholder="Ej: 1425" inputmode="numeric" maxlength="4" oninput="syncShippingFromCheckoutCp()">
         </div>
       </div>
       <div class="shipping-note">
         <span class="sn-icon">🧡</span>
-        <span>El envío se coordina por WhatsApp después de confirmar el pago. Te vamos a contactar para acordar día y horario de entrega.</span>
+        <span>Si ponés tu CP calculamos el envío automáticamente. Si lo dejás vacío (retiro en mano o coordinamos a tu zona), te contactamos por WhatsApp después del pago para acordar.</span>
       </div>
       <div class="field">
         <label for="cNota">Nota (opcional)</label>
@@ -1336,13 +1336,17 @@ async function submitOrder(method){
   const b  = document.getElementById('cBarrio').value.trim();
   const cp = document.getElementById('cCp').value.trim();
   const nota = document.getElementById('cNota').value.trim();
-  if(!n || !a || !t || !d || !b || !cp){ toast('Completá todos los campos obligatorios'); return; }
+  if(!n || !a || !t || !d || !b){ toast('Completá todos los campos obligatorios'); return; }
   if(cart.length === 0){ toast('Tu carrito está vacío'); return; }
-  // Aseguramos que el envío esté sincronizado con el CP que la clienta dejó en el modal.
-  syncShippingFromCheckoutCp();
-  if(!_shipping){
-    toast('Tu CP no está en nuestras zonas — coordinamos por WhatsApp');
-    // No bloqueamos: dejamos shipping=0 y se confirma después por WhatsApp.
+  // Si la clienta puso CP, aseguramos el envío sincronizado. Si no, dejamos shipping=0.
+  if(cp){
+    syncShippingFromCheckoutCp();
+    if(!_shipping){
+      toast('Tu CP no está en nuestras zonas — coordinamos el envío por WhatsApp');
+      // No bloqueamos: dejamos shipping=0 y se confirma después por WhatsApp.
+    }
+  } else {
+    _shipping = null; // sin CP = sin envío precalculado, se coordina por WA
   }
 
   const btnMp   = document.getElementById('btnPayMp');

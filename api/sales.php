@@ -52,7 +52,8 @@ if ($method === 'POST') {
     $method_payment = $in['paymentMethod'] ?? '';
     if (!in_array($method_payment, ['mp', 'cash'], true)) sa_fail('Método de pago inválido', 400);
 
-    $required = ['name', 'lastname', 'phone', 'address', 'district', 'zip'];
+    // CP es opcional (algunos clientes retiran en mano o se coordina por WA aparte).
+    $required = ['name', 'lastname', 'phone', 'address', 'district'];
     foreach ($required as $k) {
         if (empty(trim((string)($customer[$k] ?? '')))) sa_fail("Falta $k del cliente", 400);
     }
