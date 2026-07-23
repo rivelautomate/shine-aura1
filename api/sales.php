@@ -21,9 +21,11 @@ function sa_validate_items(array $items): array {
         $qty   = (int)($it['qty'] ?? 0);
         $price = (int)($it['price'] ?? 0);
         $size  = trim((string)($it['size'] ?? ''));
+        $color = trim((string)($it['color'] ?? ''));
         if ($name === '' || $qty <= 0 || $price < 0) sa_fail('Item inválido en el carrito', 400);
         $row = ['name' => $name, 'qty' => $qty, 'price' => $price];
         if ($size !== '') $row['size'] = $size;
+        if ($color !== '') $row['color'] = $color;
         if (!empty($it['productId'])) $row['productId'] = (int)$it['productId'];
         $out[] = $row;
     }
