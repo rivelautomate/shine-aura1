@@ -801,15 +801,8 @@ footer p{font-size:11px;letter-spacing:.06em;color:rgba(250,212,228,.35);margin:
     </div>
 
     <div class="filter-tabs" id="filterTabs">
+      <!-- El tab "Todos" queda fijo. El resto se genera dinámicamente desde /api/categories.php. -->
       <button class="ftab active" data-cat="todos">Todos</button>
-      <button class="ftab" data-cat="catsuits">Catsuits</button>
-      <button class="ftab" data-cat="vestidos">Vestidos</button>
-      <button class="ftab" data-cat="polleras">Polleras</button>
-      <button class="ftab" data-cat="conjuntos">Conjuntos</button>
-      <button class="ftab" data-cat="brillos">Brillos</button>
-      <button class="ftab" data-cat="basicos">Básicos</button>
-      <button class="ftab" data-cat="bodys">Bodys</button>
-      <button class="ftab" data-cat="accesorios">Accesorios</button>
     </div>
     <div class="products-grid" id="productsGrid"></div>
     <div class="empty-state" id="productsEmpty" style="display:none;">No hay productos en esta categoría.</div>
@@ -1059,10 +1052,15 @@ const WA_NUM='5491133440712';
 const API_PRODUCTS   = '/api/products.php';
 const API_SALES      = '/api/sales.php';
 const API_PREFERENCE = '/api/create-preference.php';
+const API_CATEGORIES = '/api/categories.php';
 
 // Cache de productos en memoria. Se puebla al inicio con fetch y se refresca si hace falta.
 let __SA_PRODUCTS = [];
 function getProducts(){ return __SA_PRODUCTS; }
+
+// Cache de categorías activas (gestionadas desde el admin).
+let __SA_CATEGORIES = [];
+function getCategories(){ return __SA_CATEGORIES; }
 
 async function loadProducts(){
   try{
@@ -1076,6 +1074,39 @@ async function loadProducts(){
     // Si falla el fetch mantenemos el cache anterior — así no se vacía la tienda si la red tiembla un segundo.
   }
   return __SA_PRODUCTS;
+}
+
+async function loadCategories(){
+  try{
+    const r = await fetch(API_CATEGORIES, {cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const j = await r.json();
+    if(Array.isArray(j.categories)){
+      __SA_CATEGORIES = j.categories;
+    }
+  }catch(e){
+    // Fallback silencioso: si falla, el filtro queda solo con "Todos" y todos los productos se ven.
+  }
+  return __SA_CATEGORIES;
+}
+
+// Genera los botones de filtro a partir de las categorías activas.
+// El tab "Todos" ya está fijo en el HTML; los demás se agregan al final.
+function renderFilterTabs(){
+  const wrap = document.getElementById('filterTabs');
+  if(!wrap) return;
+  // Limpiar todos los tabs excepto "Todos" (data-cat="todos")
+  wrap.querySelectorAll('.ftab:not([data-cat="todos"])').forEach(el => el.remove());
+
+  const frag = document.createDocumentFragment();
+  for(const cat of __SA_CATEGORIES){
+    const b = document.createElement('button');
+    b.className = 'ftab';
+    b.dataset.cat = cat.slug;
+    b.textContent = cat.name;
+    frag.appendChild(b);
+  }
+  wrap.appendChild(frag);
 }
 
 function fmt(n){return'$'+Number(n).toLocaleString('es-AR');}
@@ -1860,7 +1891,8 @@ setInterval(refreshProducts, 60000);
 
 // Init
 updateCartUI();
-loadProducts().then(() => {
+Promise.all([loadCategories(), loadProducts()]).then(() => {
+  renderFilterTabs();
   renderSlider();
   renderProducts();
 });

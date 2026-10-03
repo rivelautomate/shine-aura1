@@ -129,6 +129,34 @@ html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
 .admin-card.sortable-ghost{opacity:.35;}
 .admin-card.sortable-chosen{box-shadow:0 12px 40px rgba(212,120,155,.35);}
 .admin-card.sortable-drag{transform:rotate(1.5deg);}
+
+/* ===== CATEGORIES ===== */
+.cat-row{display:flex;align-items:center;gap:12px;padding:12px 14px;background:#fff;
+  border:1px solid var(--line);border-radius:12px;transition:border-color .2s,box-shadow .2s;}
+.cat-row:hover{border-color:var(--pink);}
+.cat-row.sortable-ghost{opacity:.35;}
+.cat-row.sortable-chosen{box-shadow:0 12px 30px rgba(212,120,155,.25);}
+.cat-row.sortable-drag{transform:rotate(1deg);}
+.cat-row.inactive{opacity:.55;background:var(--paper-2);}
+.cat-handle{cursor:grab;color:var(--muted);font-size:16px;padding:4px 2px;user-select:none;touch-action:none;
+  line-height:1;display:grid;place-items:center;}
+.cat-handle:active{cursor:grabbing;}
+.cat-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.cat-name{font-size:15px;font-weight:600;color:var(--ink);}
+.cat-slug{font-size:11px;color:var(--muted);font-family:monospace;letter-spacing:.02em;}
+.cat-actions{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.cat-toggle{position:relative;width:40px;height:22px;background:#e5e5e5;border-radius:999px;cursor:pointer;
+  transition:background .2s;border:none;padding:0;}
+.cat-toggle.on{background:#4ade80;}
+.cat-toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;background:#fff;
+  border-radius:50%;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.cat-toggle.on::after{left:20px;}
+.cat-btn{background:transparent;border:1px solid var(--line);border-radius:8px;padding:6px 10px;
+  cursor:pointer;color:var(--muted);transition:all .2s;font-size:12px;}
+.cat-btn:hover{color:var(--ink);border-color:var(--ink);}
+.cat-btn.danger:hover{color:var(--red);border-color:var(--red);}
+.toggle-field{display:flex;align-items:center;gap:12px;padding:10px 0;}
+.toggle-field .toggle-sub{font-size:11px;color:var(--muted);font-weight:400;display:block;margin-top:2px;}
 .saving-pill{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
   background:var(--ink);color:#fff;padding:10px 20px;border-radius:999px;
   font-size:13px;z-index:1000;display:none;align-items:center;gap:8px;
@@ -374,6 +402,7 @@ html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
 
   <div class="tabs">
     <button class="tab-btn active" onclick="showTab('catalogo',this)">Catálogo</button>
+    <button class="tab-btn" onclick="showTab('categorias',this)">Categorías</button>
     <button class="tab-btn" onclick="showTab('ventas',this)">Ventas</button>
     <button class="tab-btn" onclick="showTab('cuenta',this)">Mi cuenta</button>
   </div>
@@ -435,6 +464,28 @@ html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
     </div>
 
     <!-- TAB: Cuenta -->
+    <!-- TAB: Categorías -->
+    <div class="tab-panel" id="tab-categorias">
+      <div class="toolbar">
+        <h2>Categorías <span id="catCount" style="font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:400;font-size:20px;"></span></h2>
+        <div class="toolbar-right">
+          <button class="btn btn-pink" onclick="openCategoryModal()">+ Agregar categoría</button>
+        </div>
+      </div>
+      <p style="font-size:13px;color:var(--muted);margin:0 0 14px;">
+        Las categorías activas aparecen como filtros en la tienda. Las apagadas no se muestran al público,
+        pero los productos que ya tenían esa categoría asignada siguen existiendo en el catálogo general.
+        Podés arrastrar las categorías para reordenarlas.
+      </p>
+      <div class="reorder-hint" style="margin-bottom:12px;">
+        ✨ Tip: arrastrá cada fila con el ícono ⠿ a la izquierda para cambiar el orden en que aparecen los filtros.
+      </div>
+      <div id="categoriesList" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <div id="catsEmpty" style="display:none;padding:40px 0;text-align:center;color:var(--muted);font-size:14px;">
+        No hay categorías cargadas. Tocá "+ Agregar categoría" para crear la primera.
+      </div>
+    </div>
+
     <div class="tab-panel" id="tab-cuenta">
       <div class="toolbar"><h2>Mi cuenta</h2></div>
       <div class="account-box">
@@ -474,15 +525,8 @@ html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
       <div class="form-grid-2">
         <label class="form-field">Categoría *
           <select id="fCat" required>
-            <option value="">Seleccioná...</option>
-            <option value="catsuits">Catsuits</option>
-            <option value="vestidos">Vestidos</option>
-            <option value="polleras">Polleras</option>
-            <option value="conjuntos">Conjuntos</option>
-            <option value="brillos">Brillos</option>
-            <option value="basicos">Básicos</option>
-            <option value="bodys">Bodys</option>
-            <option value="accesorios">Accesorios</option>
+            <!-- Opciones cargadas dinámicamente desde /api/categories.php (solo activas). -->
+            <option value="">Cargando categorías…</option>
           </select>
         </label>
         <label class="form-field">Etiqueta (opcional)
@@ -582,6 +626,38 @@ html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
 </div>
 
 <!-- MODAL: Confirmar -->
+<!-- MODAL: Crear/Editar categoría -->
+<div class="modal-overlay" id="categoryModalOverlay" onclick="handleCatOverlay(event)">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-head">
+      <h3 id="categoryModalTitle">Nueva categoría</h3>
+      <button class="modal-close" onclick="closeCategoryModal()">✕</button>
+    </div>
+    <form id="categoryForm" onsubmit="saveCategory(event)">
+      <input type="hidden" id="catEditId">
+      <label class="form-field">Nombre *
+        <input id="catName" required maxlength="50" placeholder="Ej: Lencería, Pijamas, Bikinis…">
+        <span class="form-help">Es el nombre que ven las clientas en el filtro de la tienda.</span>
+      </label>
+      <label class="form-field">Slug (opcional)
+        <input id="catSlug" maxlength="40" placeholder="Ej: lenceria (se autogenera si lo dejás vacío)" pattern="[a-z0-9-]+" title="Solo minúsculas, números y guiones">
+        <span class="form-help">Identificador interno. Solo tocálo si sabés lo que hacés — cambiarlo afecta los productos que ya están en esta categoría.</span>
+      </label>
+      <label class="toggle-field" style="display:flex;align-items:center;gap:12px;padding:10px 0;">
+        <input type="checkbox" id="catActive" checked style="width:18px;height:18px;">
+        <span>
+          <strong>Activa</strong>
+          <span class="toggle-sub">Si está apagada, no aparece como filtro en la tienda.</span>
+        </span>
+      </label>
+      <div class="form-actions" style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px;">
+        <button type="button" class="btn btn-outline" onclick="closeCategoryModal()">Cancelar</button>
+        <button type="submit" class="btn btn-ink" id="btnSaveCat">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="modal-overlay" id="confirmOverlay" onclick="handleConfirmOverlay(event)">
   <div class="modal" style="max-width:380px;">
     <div class="confirm-box">
@@ -663,6 +739,7 @@ function enterAdmin(){
   document.getElementById('adminWrap').classList.add('visible');
   refreshProducts();
   refreshSales();
+  refreshCategories();
 }
 checkAuthOnLoad();
 
@@ -673,6 +750,7 @@ function showTab(name, btn){
   document.getElementById('tab-'+name).classList.add('active');
   btn.classList.add('active');
   if(name === 'ventas') refreshSales();
+  if(name === 'categorias') refreshCategories();
 }
 
 // ============ PRODUCTS ============
@@ -809,6 +887,9 @@ function openProductModal(id){
   document.getElementById('productForm').reset();
   document.getElementById('fActive').checked = true;
   document.getElementById('fFeatured').checked = false;
+  // Limpiar opciones "stale" del select de categoría que hayan quedado de ediciones anteriores
+  const selReset = document.getElementById('fCat');
+  if(selReset) selReset.querySelectorAll('option[data-stale]').forEach(o => o.remove());
   _modalImages = [];
   _modalColors = [];
   _modalStockByColor = {};
@@ -817,6 +898,18 @@ function openProductModal(id){
     const p = _products.find(x => x.dbId === id);
     if(!p){ toast('Producto no encontrado', true); return; }
     document.getElementById('fName').value = p.name || '';
+    // Si el producto tiene una categoría que fue desactivada o borrada, igual la agrego al select
+    // para no perder el valor al editar. La marco con "(apagada)" para que se note.
+    const sel = document.getElementById('fCat');
+    if(p.cat && sel && !Array.from(sel.options).some(o => o.value === p.cat)){
+      const stale = _categories.find(c => c.slug === p.cat);
+      const label = stale ? stale.name + ' (apagada)' : p.cat + ' (sin categoría)';
+      const opt = document.createElement('option');
+      opt.value = p.cat;
+      opt.textContent = label;
+      opt.dataset.stale = '1';
+      sel.appendChild(opt);
+    }
     document.getElementById('fCat').value = p.cat || '';
     document.getElementById('fTag').value = p.tag || '';
     document.getElementById('fDesc').value = p.desc || '';
@@ -1037,6 +1130,220 @@ async function saveProduct(e){
   }
 }
 
+// ============ CATEGORIES ============
+let _categories = [];
+let _categoriesSortable = null;
+
+async function refreshCategories(){
+  try{
+    const j = await api('/api/categories.php?all=1');
+    _categories = Array.isArray(j.categories) ? j.categories : [];
+    renderCategoriesList();
+    // Al refrescar, también actualizo el select del form de productos si existe en el DOM.
+    syncProductCategorySelect();
+  }catch(e){
+    toast('Error cargando categorías: ' + e.message, true);
+  }
+}
+
+function renderCategoriesList(){
+  const list = document.getElementById('categoriesList');
+  const empty = document.getElementById('catsEmpty');
+  const cnt = document.getElementById('catCount');
+  if(!list) return;
+
+  cnt.textContent = _categories.length ? `· ${_categories.length}` : '';
+
+  if(!_categories.length){
+    list.innerHTML = '';
+    if(empty) empty.style.display = 'block';
+    if(_categoriesSortable){ _categoriesSortable.destroy(); _categoriesSortable = null; }
+    return;
+  }
+  if(empty) empty.style.display = 'none';
+
+  list.innerHTML = _categories.map(c => `
+    <div class="cat-row ${c.active ? '' : 'inactive'}" data-id="${c.id}">
+      <div class="cat-handle" title="Arrastrar para reordenar">⠿</div>
+      <div class="cat-body">
+        <span class="cat-name">${esc(c.name)}</span>
+        <span class="cat-slug">${esc(c.slug)}</span>
+      </div>
+      <div class="cat-actions">
+        <button class="cat-toggle ${c.active ? 'on' : ''}" onclick="toggleCategoryActive(${c.id}, ${!c.active})"
+          title="${c.active ? 'Activa — tocar para apagar' : 'Apagada — tocar para activar'}"></button>
+        <button class="cat-btn" onclick="openCategoryModal(${c.id})">Editar</button>
+        <button class="cat-btn danger" onclick="askDeleteCategory(${c.id})">Borrar</button>
+      </div>
+    </div>
+  `).join('');
+
+  initCategoriesSortable();
+}
+
+function initCategoriesSortable(){
+  const list = document.getElementById('categoriesList');
+  if(!list || typeof Sortable === 'undefined') return;
+  if(_categoriesSortable){ _categoriesSortable.destroy(); _categoriesSortable = null; }
+  _categoriesSortable = new Sortable(list, {
+    handle: '.cat-handle',
+    animation: 150,
+    ghostClass: 'sortable-ghost',
+    chosenClass: 'sortable-chosen',
+    dragClass: 'sortable-drag',
+    onEnd: saveCategoriesOrder,
+  });
+}
+
+async function saveCategoriesOrder(){
+  const list = document.getElementById('categoriesList');
+  if(!list) return;
+  const ids = Array.from(list.querySelectorAll('.cat-row')).map(el => Number(el.dataset.id)).filter(Boolean);
+  if(!ids.length) return;
+  try{
+    await api('/api/categories.php?reorder=1', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ ids }),
+    });
+    toast('Orden guardado ✨');
+    // Actualizar sort_order local para que no se recargue
+    ids.forEach((id, i) => {
+      const c = _categories.find(x => x.id === id);
+      if(c) c.sortOrder = i;
+    });
+  }catch(e){
+    toast('No se pudo guardar el orden: ' + e.message, true);
+    refreshCategories();
+  }
+}
+
+async function toggleCategoryActive(id, newActive){
+  try{
+    await api('/api/categories.php?id=' + id, {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ active: !!newActive }),
+    });
+    const c = _categories.find(x => x.id === id);
+    if(c) c.active = !!newActive;
+    renderCategoriesList();
+    toast(newActive ? 'Categoría activada ✨' : 'Categoría apagada');
+  }catch(e){
+    toast('No se pudo cambiar: ' + e.message, true);
+  }
+}
+
+function openCategoryModal(id){
+  const edit = id ? _categories.find(c => c.id === id) : null;
+  document.getElementById('categoryModalTitle').textContent = edit ? 'Editar categoría' : 'Nueva categoría';
+  document.getElementById('catEditId').value = edit ? edit.id : '';
+  document.getElementById('catName').value = edit ? edit.name : '';
+  document.getElementById('catSlug').value = edit ? edit.slug : '';
+  document.getElementById('catActive').checked = edit ? !!edit.active : true;
+  document.getElementById('categoryModalOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('catName').focus(), 50);
+}
+
+function closeCategoryModal(){
+  document.getElementById('categoryModalOverlay').classList.remove('open');
+}
+
+function handleCatOverlay(e){
+  if(e.target === document.getElementById('categoryModalOverlay')) closeCategoryModal();
+}
+
+async function saveCategory(ev){
+  ev.preventDefault();
+  const id = document.getElementById('catEditId').value;
+  const name = document.getElementById('catName').value.trim();
+  const slug = document.getElementById('catSlug').value.trim();
+  const active = document.getElementById('catActive').checked;
+
+  if(!name){ toast('El nombre es obligatorio', true); return; }
+
+  const btn = document.getElementById('btnSaveCat');
+  btn.disabled = true;
+  btn.textContent = 'Guardando…';
+
+  try{
+    const body = { name, active };
+    if(slug) body.slug = slug;
+
+    if(id){
+      await api('/api/categories.php?id=' + id, {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body),
+      });
+      toast('Categoría actualizada ✨');
+    } else {
+      await api('/api/categories.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body),
+      });
+      toast('Categoría creada ✨');
+    }
+    closeCategoryModal();
+    await refreshCategories();
+  }catch(e){
+    toast(e.message || 'Error al guardar', true);
+  }finally{
+    btn.disabled = false;
+    btn.textContent = 'Guardar';
+  }
+}
+
+function askDeleteCategory(id){
+  const c = _categories.find(x => x.id === id);
+  if(!c) return;
+  showConfirm(
+    `¿Borrar la categoría "${c.name}"? Si hay productos asignados vas a tener que confirmar de nuevo.`,
+    async () => { await deleteCategory(id, false); }
+  );
+}
+
+async function deleteCategory(id, force){
+  try{
+    const url = '/api/categories.php?id=' + id + (force ? '&force=1' : '');
+    await api(url, { method: 'DELETE' });
+    toast('Categoría borrada');
+    await refreshCategories();
+  }catch(e){
+    // Si viene el conflicto por productos usándola, re-preguntar con force.
+    if(e.data && typeof e.data.usedBy === 'number' && e.data.usedBy > 0 && !force){
+      closeConfirm();
+      setTimeout(() => {
+        showConfirm(
+          `Hay ${e.data.usedBy} producto(s) en esta categoría. Si la borrás, esos productos quedan sin categoría válida (van a dejar de aparecer en los filtros). ¿Borrar igual?`,
+          async () => { await deleteCategory(id, true); }
+        );
+      }, 150);
+    } else {
+      toast(e.message || 'No se pudo borrar', true);
+    }
+  }
+}
+
+// Rellena el <select> de categoría del form de producto con las categorías ACTIVAS.
+// Mantiene el valor seleccionado si todavía existe. Si no hay categorías activas, deja un placeholder.
+function syncProductCategorySelect(){
+  const sel = document.getElementById('fCat');
+  if(!sel) return;
+  const current = sel.value;
+  const activas = _categories.filter(c => c.active);
+  if(!activas.length){
+    sel.innerHTML = '<option value="">(No hay categorías activas — creá una en la pestaña Categorías)</option>';
+    return;
+  }
+  sel.innerHTML = activas.map(c => `<option value="${esc(c.slug)}">${esc(c.name)}</option>`).join('');
+  // Mantener la selección previa si todavía está en el listado
+  if(current && activas.some(c => c.slug === current)){
+    sel.value = current;
+  }
+}
+
 // ============ SALES ============
 let _sales = [];
 let salesFilter = 'paid'; // Por defecto mostramos solo las VENTAS REALES (pagadas), no los intentos sin pagar.
@@ -1211,9 +1518,20 @@ function handleSaleOverlay(e){ if(e.target === document.getElementById('saleModa
 
 // ============ CONFIRM (delete) ============
 let _pendingDelete = null;
+let _customConfirmCb = null; // Para usos genéricos (categorías, etc.) con mensaje y callback propios.
 function confirmDelete(type, id, name){
   _pendingDelete = {type, id};
+  _customConfirmCb = null;
   document.getElementById('confirmMsg').textContent = `¿Eliminar "${name}"? Esta acción no se puede deshacer.`;
+  document.getElementById('confirmOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+// Confirm genérico con mensaje libre + callback. Se usa para borrar categorías (puede requerir dos
+// pasos: primero preguntar normal, y si el backend devuelve usedBy>0, re-preguntar con otro mensaje).
+function showConfirm(message, onConfirm){
+  _pendingDelete = null;
+  _customConfirmCb = typeof onConfirm === 'function' ? onConfirm : null;
+  document.getElementById('confirmMsg').textContent = message || '¿Confirmar?';
   document.getElementById('confirmOverlay').classList.add('open');
   document.body.style.overflow='hidden';
 }
@@ -1221,9 +1539,18 @@ function closeConfirm(){
   document.getElementById('confirmOverlay').classList.remove('open');
   document.body.style.overflow='';
   _pendingDelete = null;
+  _customConfirmCb = null;
 }
 function handleConfirmOverlay(e){ if(e.target === document.getElementById('confirmOverlay')) closeConfirm(); }
 document.getElementById('confirmBtn').addEventListener('click', async () => {
+  // Caso 1: confirm genérico con callback (categorías y otros)
+  if(_customConfirmCb){
+    const cb = _customConfirmCb;
+    closeConfirm();
+    try{ await cb(); }catch(e){ toast(e.message || 'Error', true); }
+    return;
+  }
+  // Caso 2: delete clásico de product/sale
   if(!_pendingDelete) return;
   const {type, id} = _pendingDelete;
   try{

@@ -90,3 +90,19 @@ CREATE TABLE IF NOT EXISTS login_attempts (
 );
 
 CREATE INDEX IF NOT EXISTS idx_attempts_ip_time ON login_attempts(ip, created_at DESC);
+
+-- Categorías de productos. Se gestionan desde el admin (crear/editar/borrar/activar).
+-- `slug` es el identificador que se guarda en products.cat y se usa como data-cat en el frontend.
+-- `sort_order` controla el orden de los tabs en el sitio.
+CREATE TABLE IF NOT EXISTS categories (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  slug TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  active INTEGER NOT NULL DEFAULT 1,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_categories_active ON categories(active);
+CREATE INDEX IF NOT EXISTS idx_categories_sort ON categories(sort_order);

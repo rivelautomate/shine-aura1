@@ -76,6 +76,46 @@ function sa_run_migrations(PDO $pdo): void {
         ");
         $pdo->exec("CREATE INDEX IF NOT EXISTS idx_attempts_ip_time ON login_attempts(ip, created_at DESC)");
     }
+
+    // Tabla de categorías gestionables desde el admin (antes estaban hardcodeadas en el frontend).
+    if (!sa_table_exists($pdo, 'categories')) {
+        $pdo->exec("
+            CREATE TABLE categories (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              slug TEXT UNIQUE NOT NULL,
+              name TEXT NOT NULL,
+              active INTEGER NOT NULL DEFAULT 1,
+              sort_order INTEGER NOT NULL DEFAULT 0,
+              created_at TEXT NOT NULL DEFAULT (datetime('now')),
+              updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+        ");
+        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_categories_active ON categories(active)");
+        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_categories_sort ON categories(sort_order)");
+        sa_seed_default_categories($pdo);
+    }
+}
+
+// Seed inicial de categorías: las 8 que había hardcodeadas en el frontend, todas activas.
+// Se puede llamar desde la migración o desde sa_seed_initial_data.
+function sa_seed_default_categories(PDO $pdo): void {
+    $check = $pdo->query("SELECT COUNT(*) FROM categories")->fetchColumn();
+    if ((int)$check > 0) return;
+
+    $defaults = [
+        ['catsuits',   'Catsuits'],
+        ['vestidos',   'Vestidos'],
+        ['polleras',   'Polleras'],
+        ['conjuntos',  'Conjuntos'],
+        ['brillos',    'Brillos'],
+        ['basicos',    'Básicos'],
+        ['bodys',      'Bodys'],
+        ['accesorios', 'Accesorios'],
+    ];
+    $stmt = $pdo->prepare("INSERT INTO categories (slug, name, active, sort_order) VALUES (:slug, :name, 1, :ord)");
+    foreach ($defaults as $i => $cat) {
+        $stmt->execute([':slug' => $cat[0], ':name' => $cat[1], ':ord' => $i]);
+    }
 }
 
 // Devuelve la IP real del cliente, considerando reverse-proxy (Traefik/Easypanel).
@@ -104,6 +144,9 @@ function sa_seed_initial_data(PDO $pdo): void {
         $stmt = $pdo->prepare("INSERT INTO admin_users (username, password_hash) VALUES ('admin', :h)");
         $stmt->execute([':h' => $hash]);
     }
+
+    // Seed de categorías por default (si todavía no están cargadas).
+    sa_seed_default_categories($pdo);
 
     // Seed de productos demo para que la tienda no arranque vacía.
     $check = $pdo->query("SELECT COUNT(*) FROM products")->fetchColumn();
